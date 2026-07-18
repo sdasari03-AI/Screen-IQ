@@ -15,6 +15,7 @@ import Analytics from '@/pages/analytics';
 import Benchmarks from '@/pages/analytics/benchmarks';
 import WBRReport from '@/pages/reports/wbr';
 import TenantScreening from '@/pages/tenant';
+import Architecture from '@/pages/architecture';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/analytics/benchmarks" component={Benchmarks} />
       <Route path="/reports/wbr" component={WBRReport} />
+      <Route path="/architecture" component={Architecture} />
       <Route path="/portal/:token" component={CandidatePortal} />
       <Route component={NotFound} />
     </Switch>

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, ShieldAlert, FileWarning, BarChart3, ShieldCheck, Activity, LogOut, Home, LineChart, FileText } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, ShieldCheck, LogOut, Home, LineChart, FileText, Network } from "lucide-react";
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -13,6 +13,7 @@ export function AppSidebar() {
     { label: "Compliance", href: "/compliance", icon: ShieldCheck },
     { label: "Analytics", href: "/analytics", icon: LineChart },
     { label: "WBR Report", href: "/reports/wbr", icon: FileText },
+    { label: "Architecture", href: "/architecture", icon: Network },
   ];
 
   return (
