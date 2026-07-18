@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "ScreenIQ"
+version = "1.0.0"
+id = "artifacts/screeniq"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19727
+
+[services.development]
+run = "pnpm --filter @workspace/screeniq run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/screeniq", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/screeniq/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19727"
+BASE_PATH = "/"

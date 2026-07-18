@@ -1,0 +1,1 @@
+- [ScreenIQ Architecture](screeniq-arch.md) — FastAPI backend, absolute workflow path required, zod.looseObject codegen fix, root-only hook imports

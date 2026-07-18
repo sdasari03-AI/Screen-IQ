@@ -3,20 +3,35 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ScreenIQ Background Screening Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: candidates
+    description: Candidate management
+  - name: screening
+    description: Screening runs and check results
+  - name: risk
+    description: AI risk assessment
+  - name: adverse-action
+    description: FCRA adverse action workflow
+  - name: disputes
+    description: Candidate dispute management
+  - name: compliance
+    description: Compliance monitoring
+  - name: dashboard
+    description: Dashboard overview
+  - name: portal
+    description: Candidate experience portal
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,550 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Candidates ──────────────────────────────────────────────
+  /candidates:
+    get:
+      operationId: listCandidates
+      tags: [candidates]
+      summary: List all candidates
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Candidate"
+    post:
+      operationId: createCandidate
+      tags: [candidates]
+      summary: Create a candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+
+  /candidates/{id}:
+    get:
+      operationId: getCandidate
+      tags: [candidates]
+      summary: Get a candidate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCandidate
+      tags: [candidates]
+      summary: Update a candidate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Candidate"
+    delete:
+      operationId: deleteCandidate
+      tags: [candidates]
+      summary: Delete a candidate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Screening ────────────────────────────────────────────────
+  /candidates/{candidateId}/run-screening:
+    post:
+      operationId: runScreening
+      tags: [screening]
+      summary: Trigger background screening for a candidate
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreeningInput"
+      responses:
+        "201":
+          description: Screening initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningRun"
+
+  /candidates/{candidateId}/screening-runs:
+    get:
+      operationId: listScreeningRuns
+      tags: [screening]
+      summary: List screening runs for a candidate
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScreeningRun"
+
+  /candidates/{candidateId}/screening-runs/{runId}:
+    get:
+      operationId: getScreeningRun
+      tags: [screening]
+      summary: Get a specific screening run
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningRun"
+
+  /candidates/{candidateId}/screening-runs/{runId}/checks:
+    get:
+      operationId: listCheckResults
+      tags: [screening]
+      summary: List all check results for a screening run
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckResult"
+
+  # ── Risk Assessment ──────────────────────────────────────────
+  /candidates/{candidateId}/screening-runs/{runId}/risk-assessment:
+    get:
+      operationId: getRiskAssessment
+      tags: [risk]
+      summary: Get AI risk assessment for a screening run
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskAssessment"
+        "404":
+          description: Not yet generated
+    post:
+      operationId: generateRiskAssessment
+      tags: [risk]
+      summary: Generate AI risk assessment for a completed screening run
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Risk assessment generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiskAssessment"
+
+  # ── Adverse Action ───────────────────────────────────────────
+  /candidates/{candidateId}/adverse-action:
+    get:
+      operationId: getAdverseAction
+      tags: [adverse-action]
+      summary: Get the adverse action record for a candidate
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdverseAction"
+        "404":
+          description: No adverse action on file
+    post:
+      operationId: createAdverseAction
+      tags: [adverse-action]
+      summary: Initiate adverse action workflow for a candidate
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdverseActionInput"
+      responses:
+        "201":
+          description: Adverse action initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdverseAction"
+    patch:
+      operationId: updateAdverseAction
+      tags: [adverse-action]
+      summary: Advance adverse action stage
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdverseActionUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdverseAction"
+
+  /candidates/{candidateId}/adverse-action/notices:
+    get:
+      operationId: listAdverseActionNotices
+      tags: [adverse-action]
+      summary: List all notices for a candidate's adverse action
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdverseActionNotice"
+    post:
+      operationId: generateAdverseActionNotice
+      tags: [adverse-action]
+      summary: Generate a pre-adverse or final adverse action notice
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NoticeInput"
+      responses:
+        "201":
+          description: Notice generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdverseActionNotice"
+
+  # ── Disputes ─────────────────────────────────────────────────
+  /candidates/{candidateId}/disputes:
+    get:
+      operationId: listCandidateDisputes
+      tags: [disputes]
+      summary: List disputes filed by a candidate
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dispute"
+    post:
+      operationId: createDispute
+      tags: [disputes]
+      summary: File a dispute for a check result
+      parameters:
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeInput"
+      responses:
+        "201":
+          description: Dispute filed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /disputes/{id}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get a dispute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+    patch:
+      operationId: updateDispute
+      tags: [disputes]
+      summary: Update a dispute status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  # ── Compliance ───────────────────────────────────────────────
+  /compliance/metrics:
+    get:
+      operationId: getComplianceMetrics
+      tags: [compliance]
+      summary: Get compliance monitoring metrics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceMetrics"
+
+  /compliance/time-series:
+    get:
+      operationId: getComplianceTimeSeries
+      tags: [compliance]
+      summary: Get time-series data for compliance charts
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceTimePoint"
+
+  /compliance/ai-insight:
+    get:
+      operationId: getComplianceAiInsight
+      tags: [compliance]
+      summary: Get AI-generated compliance insights
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceInsight"
+
+  # ── Dashboard ────────────────────────────────────────────────
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get overview statistics for the dashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent-activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Get recent screening activity feed
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  # ── Candidate Portal ─────────────────────────────────────────
+  /portal/{portalToken}:
+    get:
+      operationId: getCandidatePortal
+      tags: [portal]
+      summary: Get candidate's portal view (public, token-based)
+      parameters:
+        - name: portalToken
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidatePortal"
+        "404":
+          description: Invalid token
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +593,380 @@ components:
       required:
         - status
 
+    # ── Candidate ─────────────────────────────────────────────
+    Candidate:
+      type: object
+      required: [id, name, position, status, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        dateOfBirth:
+          type: ["string", "null"]
+        ssnLastFour:
+          type: ["string", "null"]
+        position:
+          type: string
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, in_progress, completed, flagged, adverse_action]
+        portalToken:
+          type: string
+        latestRunId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    CandidateInput:
+      type: object
+      required: [name, position]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        dateOfBirth:
+          type: string
+        ssnLastFour:
+          type: string
+          maxLength: 4
+        position:
+          type: string
+          minLength: 1
+        email:
+          type: string
+        phone:
+          type: string
+
+    CandidateUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        dateOfBirth:
+          type: string
+        ssnLastFour:
+          type: string
+        position:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        status:
+          type: string
+
+    # ── Screening ─────────────────────────────────────────────
+    ScreeningInput:
+      type: object
+      properties:
+        checkTypes:
+          type: array
+          items:
+            type: string
+
+    ScreeningRun:
+      type: object
+      required: [id, candidateId, status, checksTotal, checksCompleted, createdAt]
+      properties:
+        id:
+          type: integer
+        candidateId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        checksTotal:
+          type: integer
+        checksCompleted:
+          type: integer
+        startedAt:
+          type: ["string", "null"]
+        completedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckResult"
+
+    CheckResult:
+      type: object
+      required: [id, screeningRunId, checkType, status, dataSource, confidenceScore, processingTimeMs, createdAt]
+      properties:
+        id:
+          type: integer
+        screeningRunId:
+          type: integer
+        checkType:
+          type: string
+          enum: [criminal, employment, education, driving]
+        status:
+          type: string
+          enum: [clear, flag, review, confirmed, unverified, discrepancy, violations, suspended, clean]
+        statusLabel:
+          type: string
+        dataSource:
+          type: string
+        confidenceScore:
+          type: number
+        processingTimeMs:
+          type: integer
+        details:
+          type: object
+        createdAt:
+          type: string
+
+    # ── Risk Assessment ───────────────────────────────────────
+    RiskAssessment:
+      type: object
+      required: [id, screeningRunId, overallRisk, keyFindings, recommendedSteps, fcraAdverseFlag, createdAt]
+      properties:
+        id:
+          type: integer
+        screeningRunId:
+          type: integer
+        overallRisk:
+          type: string
+          enum: [Low, Medium, High]
+        keyFindings:
+          type: string
+        recommendedSteps:
+          type: string
+        fcraAdverseFlag:
+          type: boolean
+        riskFactors:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+
+    # ── Adverse Action ────────────────────────────────────────
+    AdverseActionInput:
+      type: object
+      required: [screeningRunId]
+      properties:
+        screeningRunId:
+          type: integer
+        reason:
+          type: string
+
+    AdverseActionUpdate:
+      type: object
+      properties:
+        stage:
+          type: string
+          enum: [pre_adverse, waiting_period, final_adverse, closed]
+
+    AdverseAction:
+      type: object
+      required: [id, candidateId, screeningRunId, stage, createdAt]
+      properties:
+        id:
+          type: integer
+        candidateId:
+          type: integer
+        screeningRunId:
+          type: integer
+        stage:
+          type: string
+          enum: [pre_adverse, waiting_period, final_adverse, closed]
+        reason:
+          type: ["string", "null"]
+        preAdverseNoticeSentAt:
+          type: ["string", "null"]
+        waitingPeriodEndsAt:
+          type: ["string", "null"]
+        finalNoticeAt:
+          type: ["string", "null"]
+        closedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    NoticeInput:
+      type: object
+      required: [noticeType]
+      properties:
+        noticeType:
+          type: string
+          enum: [pre_adverse, final_adverse]
+
+    AdverseActionNotice:
+      type: object
+      required: [id, adverseActionId, noticeType, content, createdAt]
+      properties:
+        id:
+          type: integer
+        adverseActionId:
+          type: integer
+        noticeType:
+          type: string
+          enum: [pre_adverse, final_adverse]
+        content:
+          type: string
+        sentAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    # ── Disputes ──────────────────────────────────────────────
+    DisputeInput:
+      type: object
+      required: [checkResultId, reason]
+      properties:
+        checkResultId:
+          type: integer
+        reason:
+          type: string
+        supportingDocUrl:
+          type: string
+
+    DisputeUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, under_review, resolved, rejected]
+        resolution:
+          type: string
+
+    Dispute:
+      type: object
+      required: [id, candidateId, checkResultId, reason, status, createdAt]
+      properties:
+        id:
+          type: integer
+        candidateId:
+          type: integer
+        checkResultId:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [open, under_review, resolved, rejected]
+        resolution:
+          type: ["string", "null"]
+        supportingDocUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    # ── Compliance ────────────────────────────────────────────
+    ComplianceMetrics:
+      type: object
+      required: [avgTurnaroundByType, disputeRate, adverseActionRate, sourceReliability, totalScreenings, totalCandidates]
+      properties:
+        totalScreenings:
+          type: integer
+        totalCandidates:
+          type: integer
+        avgTurnaroundByType:
+          type: object
+        disputeRate:
+          type: number
+        adverseActionRate:
+          type: number
+        sourceReliability:
+          type: object
+        industryAvgTurnaround:
+          type: object
+
+    ComplianceTimePoint:
+      type: object
+      required: [date, screenings, disputes, adverseActions, avgTurnaround]
+      properties:
+        date:
+          type: string
+        screenings:
+          type: integer
+        disputes:
+          type: integer
+        adverseActions:
+          type: integer
+        avgTurnaround:
+          type: number
+
+    ComplianceInsight:
+      type: object
+      required: [insight, generatedAt]
+      properties:
+        insight:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        generatedAt:
+          type: string
+
+    # ── Dashboard ─────────────────────────────────────────────
+    DashboardStats:
+      type: object
+      required: [totalCandidates, pendingScreenings, completedToday, flaggedCandidates, riskBreakdown, checkTypeBreakdown]
+      properties:
+        totalCandidates:
+          type: integer
+        pendingScreenings:
+          type: integer
+        completedToday:
+          type: integer
+        flaggedCandidates:
+          type: integer
+        adverseActionsOpen:
+          type: integer
+        openDisputes:
+          type: integer
+        riskBreakdown:
+          type: object
+        checkTypeBreakdown:
+          type: object
+
+    ActivityItem:
+      type: object
+      required: [id, type, candidateName, description, timestamp]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [screening_completed, flag_raised, adverse_action_initiated, dispute_filed, risk_assessed]
+        candidateName:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+        riskLevel:
+          type: ["string", "null"]
+
+    # ── Candidate Portal ──────────────────────────────────────
+    CandidatePortal:
+      type: object
+      required: [candidate, latestRun, checkResults]
+      properties:
+        candidate:
+          $ref: "#/components/schemas/Candidate"
+        latestRun:
+          $ref: "#/components/schemas/ScreeningRun"
+        checkResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckResult"
+        disputes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dispute"
+        adverseAction:
+          $ref: "#/components/schemas/AdverseAction"

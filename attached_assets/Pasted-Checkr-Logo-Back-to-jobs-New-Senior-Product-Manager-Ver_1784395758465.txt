@@ -1,0 +1,37 @@
+Checkr Logo
+Back to jobs
+New
+Senior Product Manager, Verifications
+Denver, Colorado, United States; San Francisco, California, United States
+About Checkr
+Checkr is building the data platform to power safe and fair decisions. Over 140,000 companies and millions of people rely on Checkr for AI verification in the moments that matter most: getting a new job, a new place to live, a car ride, childcare, even a date. Customers include Uber, Pennymac, Airbnb, Doordash, Amazon, and Anthropic.
+
+We’re a team that thrives on solving complex problems with innovative solutions that advance our mission. Checkr is recognized on Forbes Cloud 100 2025 List and is a Y Combinator 2024 Breakthrough Company.
+
+About the team/role
+
+Hiring decisions carry real consequences, for the safety of a workplace, the integrity of a workforce, and the trust employers place in the people they bring on. Employers today run verification checks across employment history, education, criminal records, driving records, and more, each with its own data sources, compliance requirements, and failure modes. As hiring volume grows, employers need verification products that are fast, accurate, and easy to trust, not a source of delay or risk.
+
+As Senior Product Manager for Checkr's Verifications products, you will own the strategy and roadmap for a core part of the background check experience. You will improve accuracy and speed for employers while reducing friction for candidates, strengthening trust in the hiring process at every step. You will work closely with Engineering, Operations, and GTM teams to ship market-leading verification products, using data and direct customer input to guide every decision.
+
+What you’ll do
+
+Strategy & roadmap: Own strategy & roadmap for Drug & Occupational Health testing services, grounding decisions in customer discovery, GTM input, and data analysis.
+Voice of the customer: represent customer needs directly in product and technical design discussions, not just via research reports
+Competitive/market awareness: track competitor moves and market shifts that affect roadmap priorities
+Drive outcomes: Define and drive OKRs, connecting input metrics (attach rate, conversion rate, RPR) to output impact (revenue and profit).
+Implementation: Write clear specs and PRDs independently, and lead ops reviews that keep the team focused on the right metrics. Make implementation trade-off decisions, balancing speed, quality, and customer impact.
+Pricing & packaging ownership: partner with Finance/GTM to define pricing and packaging for your product area 
+Launch leadership: own go-to-market coordination for releases — enablement, positioning input, and rollout sequencing
+Communicate roadmap, goals, and progress clearly to stakeholders and leadership.
+Model Checkr's values and build strong relationships within and beyond your immediate team.
+What you bring
+
+Bachelor's in Computer Science or related field preferred
+5+ years of product management experience, with a track record of owning strategy and roadmap for a product area with minimal oversight
+Deep fluency with data and analytics; comfortable defining and interpreting metrics like attach rate, conversion rate, and RPR
+Comfortable partnering closely with engineering on technical trade-offs, API/platform decisions, or system constraints
+Strong customer discovery instincts — you talk to customers directly and pair that insight with GTM and research input to build product hypotheses
+Proven ability to write crisp PRDs and specs without manager guidance
+Experience navigating ambiguity and driving cross-functional alignment across GTM, Ops, and Finance stakeholders
+An A-player mindset with a strong bias for action: you raise the bar, move with urgency, stay resilient through ambiguity, and take ownership to deliver meaningful outcomes.
