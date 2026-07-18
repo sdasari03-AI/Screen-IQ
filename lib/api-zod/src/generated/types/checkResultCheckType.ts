@@ -14,4 +14,7 @@ export const CheckResultCheckType = {
   employment: 'employment',
   education: 'education',
   driving: 'driving',
+  drug_health: 'drug_health',
+  credit: 'credit',
+  eviction: 'eviction',
 } as const;

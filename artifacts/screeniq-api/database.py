@@ -110,4 +110,22 @@ def init_db():
                     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 );
+
+                CREATE TABLE IF NOT EXISTS wbr_reports (
+                    id SERIAL PRIMARY KEY,
+                    week_start TEXT NOT NULL,
+                    week_end TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    key_metrics JSONB NOT NULL DEFAULT '{}',
+                    risks JSONB NOT NULL DEFAULT '[]',
+                    recommendations JSONB NOT NULL DEFAULT '[]',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            """)
+
+            # Idempotent schema migrations for new columns
+            cur.execute("""
+                ALTER TABLE candidates ADD COLUMN IF NOT EXISTS screening_type TEXT NOT NULL DEFAULT 'employment';
+                ALTER TABLE candidates ADD COLUMN IF NOT EXISTS latest_run_id INTEGER REFERENCES screening_runs(id) ON DELETE SET NULL;
             """)

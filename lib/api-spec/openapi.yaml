@@ -26,6 +26,10 @@ tags:
     description: Dashboard overview
   - name: portal
     description: Candidate experience portal
+  - name: analytics
+    description: Business metrics, benchmarking, backlog health, friction analytics
+  - name: reports
+    description: AI-generated executive reports (WBR)
 paths:
   /healthz:
     get:
@@ -583,6 +587,88 @@ paths:
         "404":
           description: Invalid token
 
+  # ── Analytics ────────────────────────────────────────────────
+  /analytics/business-metrics:
+    get:
+      operationId: getBusinessMetrics
+      tags: [analytics]
+      summary: Checkr-style OKR metrics — attach rate, conversion rate, RPR, time-to-value
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessMetrics"
+
+  /analytics/benchmarks:
+    get:
+      operationId: getBenchmarks
+      tags: [analytics]
+      summary: Industry benchmarking by check type
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BenchmarkItem"
+
+  /analytics/backlog:
+    get:
+      operationId: getBacklogHealth
+      tags: [analytics]
+      summary: Backlog and implementation health metrics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BacklogHealth"
+
+  /analytics/friction:
+    get:
+      operationId: getFrictionAnalytics
+      tags: [analytics]
+      summary: Candidate friction analytics by check type
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FrictionAnalytics"
+
+  # ── Reports ──────────────────────────────────────────────────
+  /reports/wbr:
+    get:
+      operationId: getWbrReport
+      tags: [reports]
+      summary: Get the latest AI-generated Weekly Business Review report
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WBRReport"
+
+  /reports/wbr/generate:
+    post:
+      operationId: generateWbrReport
+      tags: [reports]
+      summary: Force-generate a fresh Weekly Business Review report
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WBRReport"
+
 components:
   schemas:
     HealthStatus:
@@ -615,6 +701,10 @@ components:
         status:
           type: string
           enum: [pending, in_progress, completed, flagged, adverse_action]
+        screeningType:
+          type: string
+          enum: [employment, tenant]
+          default: employment
         portalToken:
           type: string
         latestRunId:
@@ -643,6 +733,10 @@ components:
           type: string
         phone:
           type: string
+        screeningType:
+          type: string
+          enum: [employment, tenant]
+          default: employment
 
     CandidateUpdate:
       type: object
@@ -707,10 +801,10 @@ components:
           type: integer
         checkType:
           type: string
-          enum: [criminal, employment, education, driving]
+          enum: [criminal, employment, education, driving, drug_health, credit, eviction]
         status:
           type: string
-          enum: [clear, flag, review, confirmed, unverified, discrepancy, violations, suspended, clean]
+          enum: [clear, flag, review, confirmed, unverified, discrepancy, violations, suspended, clean, negative, positive, awaiting_collection, inconclusive]
         statusLabel:
           type: string
         dataSource:
@@ -949,6 +1043,143 @@ components:
         timestamp:
           type: string
         riskLevel:
+          type: ["string", "null"]
+
+    # ── Analytics ─────────────────────────────────────────────
+    BusinessMetrics:
+      type: object
+      required: [attachRate, conversionRate, reRunRate, avgTimeToValueHours, totalCandidates, totalRuns]
+      properties:
+        attachRate:
+          type: number
+        conversionRate:
+          type: number
+        reRunRate:
+          type: number
+        avgTimeToValueHours:
+          type: number
+        avgTurnaroundMs:
+          type: number
+        totalCandidates:
+          type: integer
+        totalRuns:
+          type: integer
+        completedRuns:
+          type: integer
+        adverseActionsOpen:
+          type: integer
+        checkTypeDistribution:
+          type: object
+
+    BenchmarkItem:
+      type: object
+      required: [checkType, ourAvgTurnaroundMs, industryAvgTurnaroundMs, turnaroundDeltaPct, ourFlagRate, industryFlagRate]
+      properties:
+        checkType:
+          type: string
+        ourAvgTurnaroundMs:
+          type: number
+        industryAvgTurnaroundMs:
+          type: number
+        turnaroundDeltaPct:
+          type: number
+        ourFlagRate:
+          type: number
+        industryFlagRate:
+          type: number
+        ourDisputeRate:
+          type: number
+        industryDisputeRate:
+          type: number
+        source:
+          type: string
+        sampleSize:
+          type: integer
+
+    BacklogHealth:
+      type: object
+      required: [pendingTotal, overdueCount, onTimeDeliveryRate, escalationCount, throughput7Days]
+      properties:
+        pendingTotal:
+          type: integer
+        overdueCount:
+          type: integer
+        onTimeDeliveryRate:
+          type: number
+        escalationCount:
+          type: integer
+        avgPendingAgeHours:
+          type: number
+        pendingByCheckType:
+          type: object
+        throughput7Days:
+          type: integer
+        totalCompleted:
+          type: integer
+
+    FrictionCheckType:
+      type: object
+      required: [checkType, avgProcessingMs, flagRate, disputeRate, frictionScore]
+      properties:
+        checkType:
+          type: string
+        avgProcessingMs:
+          type: number
+        flagRate:
+          type: number
+        disputeRate:
+          type: number
+        avgConfidencePct:
+          type: number
+        frictionScore:
+          type: number
+        sampleSize:
+          type: integer
+
+    FrictionAnalytics:
+      type: object
+      required: [overallFrictionScore, byCheckType, totalDisputes]
+      properties:
+        overallFrictionScore:
+          type: number
+        byCheckType:
+          type: array
+          items:
+            $ref: "#/components/schemas/FrictionCheckType"
+        portalEngagementRate:
+          type: number
+        totalDisputes:
+          type: integer
+        candidatesDisputed:
+          type: integer
+        totalCandidates:
+          type: integer
+
+    WBRReport:
+      type: object
+      required: [weekStart, weekEnd, content, summary, generatedAt]
+      properties:
+        id:
+          type: integer
+        weekStart:
+          type: string
+        weekEnd:
+          type: string
+        content:
+          type: string
+        summary:
+          type: string
+        keyMetrics:
+          type: object
+        risks:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        generatedAt:
           type: ["string", "null"]
 
     # ── Candidate Portal ──────────────────────────────────────

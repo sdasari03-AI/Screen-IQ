@@ -5,6 +5,7 @@
  * ScreenIQ Background Screening Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { CandidateScreeningType } from './candidateScreeningType';
 import type { CandidateStatus } from './candidateStatus';
 
 export interface Candidate {
@@ -20,6 +21,7 @@ export interface Candidate {
   /** @nullable */
   phone?: string | null;
   status: CandidateStatus;
+  screeningType?: CandidateScreeningType;
   portalToken?: string;
   /** @nullable */
   latestRunId?: number | null;

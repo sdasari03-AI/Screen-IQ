@@ -19,4 +19,8 @@ export const CheckResultStatus = {
   violations: 'violations',
   suspended: 'suspended',
   clean: 'clean',
+  negative: 'negative',
+  positive: 'positive',
+  awaiting_collection: 'awaiting_collection',
+  inconclusive: 'inconclusive',
 } as const;

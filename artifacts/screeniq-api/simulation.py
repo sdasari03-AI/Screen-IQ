@@ -52,6 +52,40 @@ CHECK_CONFIGS = {
         "weights": [0.65, 0.28, 0.07],
         "base_processing_ms": 600,
     },
+    # ── New check types ─────────────────────────────────────────────
+    "drug_health": {
+        "data_source": "Occupational Health & Drug Testing Network (OHDTN)",
+        "statuses": ["negative", "positive", "awaiting_collection", "inconclusive"],
+        "status_labels": {
+            "negative": "Negative — Clear",
+            "positive": "Positive — Further Review Required",
+            "awaiting_collection": "Awaiting Specimen Collection",
+            "inconclusive": "Inconclusive — Retest Ordered",
+        },
+        "weights": [0.74, 0.08, 0.12, 0.06],
+        "base_processing_ms": 3800,
+    },
+    "credit": {
+        "data_source": "TransUnion Consumer Credit Bureau",
+        "statuses": ["clear", "flag", "review"],
+        "status_labels": {
+            "clear": "Acceptable Credit Profile",
+            "flag": "Derogatory Marks Found",
+            "review": "Manual Review — Borderline Profile",
+        },
+        "weights": [0.62, 0.24, 0.14],
+        "base_processing_ms": 1100,
+    },
+    "eviction": {
+        "data_source": "National Eviction Records Database (NERD)",
+        "statuses": ["clear", "flag"],
+        "status_labels": {
+            "clear": "No Eviction Records Found",
+            "flag": "Eviction Record Found",
+        },
+        "weights": [0.81, 0.19],
+        "base_processing_ms": 850,
+    },
 }
 
 CHECK_DETAILS = {
@@ -127,6 +161,89 @@ CHECK_DETAILS = {
             "dui": False,
         },
     },
+    "drug_health": {
+        "negative": {
+            "panel": "10-Panel Urine Screen",
+            "collection_site": "AFC Urgent Care — Austin, TX",
+            "collection_date": "2024-01-10",
+            "lab": "Quest Diagnostics",
+            "substances_tested": ["THC", "Cocaine", "Amphetamines", "Opioids", "PCP", "Benzodiazepines", "Barbiturates", "Propoxyphene", "Methadone", "Methaqualone"],
+            "mro_reviewed": True,
+        },
+        "positive": {
+            "panel": "10-Panel Urine Screen",
+            "collection_site": "LabCorp — Dallas, TX",
+            "collection_date": "2024-01-10",
+            "lab": "LabCorp",
+            "substance_detected": "Amphetamines",
+            "mro_reviewed": True,
+            "mro_determination": "Positive — No valid prescription on file",
+            "retest_available": True,
+        },
+        "awaiting_collection": {
+            "panel": "10-Panel Urine Screen",
+            "collection_order_sent": "2024-01-10",
+            "collection_deadline": "2024-01-15",
+            "collection_sites_available": 3,
+            "reminder_sent": True,
+        },
+        "inconclusive": {
+            "panel": "10-Panel Urine Screen",
+            "reason": "Specimen validity test failed — dilute specimen",
+            "retest_ordered": True,
+            "retest_deadline": "2024-01-17",
+        },
+    },
+    "credit": {
+        "clear": {
+            "credit_score_range": "720-759 (Good)",
+            "derogatory_marks": 0,
+            "public_records": 0,
+            "collections": 0,
+            "debt_to_income_flag": False,
+            "bankruptcies_7yr": 0,
+        },
+        "flag": {
+            "credit_score_range": "580-619 (Fair/Poor)",
+            "derogatory_marks": 3,
+            "public_records": 1,
+            "collections": 2,
+            "debt_to_income_flag": True,
+            "bankruptcies_7yr": 1,
+            "most_recent_derogatory": "2022-08-15",
+        },
+        "review": {
+            "credit_score_range": "640-679 (Fair)",
+            "derogatory_marks": 1,
+            "public_records": 0,
+            "collections": 1,
+            "debt_to_income_flag": False,
+            "bankruptcies_7yr": 0,
+            "note": "Borderline profile — recommend position-sensitivity review",
+        },
+    },
+    "eviction": {
+        "clear": {
+            "records_searched": "National + State eviction databases (7 years)",
+            "states_searched": 50,
+            "unlawful_detainers": 0,
+            "judgments": 0,
+        },
+        "flag": {
+            "records_searched": "National + State eviction databases (7 years)",
+            "eviction_date": "2021-04-22",
+            "county": "Cook County, IL",
+            "plaintiff": "Midwest Property Management LLC",
+            "judgment_amount": "$3,240",
+            "outcome": "Judgment for plaintiff",
+        },
+    },
+}
+
+# Default check packages by screening type
+SCREENING_PACKAGES = {
+    "employment": ["criminal", "employment", "education", "driving"],
+    "tenant": ["criminal", "credit", "eviction"],
 }
 
 
@@ -144,8 +261,9 @@ def simulate_check(candidate_name: str, check_type: str) -> dict[str, Any]:
     status_label = cfg["status_labels"][status]
     data_source = cfg["data_source"]
 
-    # Confidence score: higher for clear/confirmed, lower for flags
-    base_confidence = 0.92 if status in ("clear", "confirmed", "clean") else 0.74
+    # Confidence score: higher for clear/confirmed/negative, lower for flags
+    clear_statuses = ("clear", "confirmed", "clean", "negative")
+    base_confidence = 0.92 if status in clear_statuses else 0.74
     confidence = round(min(0.99, max(0.55, base_confidence + rng.uniform(-0.08, 0.06))), 2)
 
     # Processing time in ms with some variance
@@ -164,7 +282,14 @@ def simulate_check(candidate_name: str, check_type: str) -> dict[str, Any]:
     }
 
 
-def simulate_all_checks(candidate_name: str, check_types: list[str] | None = None) -> list[dict[str, Any]]:
-    """Run all checks for a candidate."""
-    types = check_types or ["criminal", "employment", "education", "driving"]
-    return [simulate_check(candidate_name, ct) for ct in types]
+def simulate_all_checks(
+    candidate_name: str,
+    check_types: list[str] | None = None,
+    screening_type: str = "employment",
+) -> list[dict[str, Any]]:
+    """Run all checks for a candidate using the appropriate package."""
+    if check_types:
+        types = check_types
+    else:
+        types = SCREENING_PACKAGES.get(screening_type, SCREENING_PACKAGES["employment"])
+    return [simulate_check(candidate_name, ct) for ct in types if ct in CHECK_CONFIGS]

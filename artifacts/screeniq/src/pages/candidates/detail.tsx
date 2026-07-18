@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { 
   useGetCandidate, 
@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, ShieldAlert, CheckCircle2, AlertTriangle, Clock, Search, FileText, User, Mail, Phone, Calendar, Hash, ExternalLink, Activity, MessageSquare } from "lucide-react";
+import { ArrowLeft, Play, ShieldAlert, CheckCircle2, AlertTriangle, Clock, Search, FileText, User, Mail, Phone, Calendar, Hash, ExternalLink, Activity, MessageSquare, Briefcase, Home } from "lucide-react";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -34,8 +34,7 @@ export default function CandidateDetail() {
   const [isRunScreenOpen, setIsRunScreenOpen] = useState(false);
   const [isAdverseActionOpen, setIsAdverseActionOpen] = useState(false);
   const [adverseReason, setAdverseReason] = useState("");
-  const [selectedChecks, setSelectedChecks] = useState<string[]>(['criminal', 'employment', 'education']);
-  
+  const [selectedChecks, setSelectedChecks] = useState<string[]>([]);
   const [selectedDisputeId, setSelectedDisputeId] = useState<number | null>(null);
   const [resolutionText, setResolutionText] = useState("");
   const [resolutionStatus, setResolutionStatus] = useState<'resolved' | 'rejected'>('resolved');
@@ -43,6 +42,16 @@ export default function CandidateDetail() {
   const { data: candidate, isLoading: candidateLoading } = useGetCandidate(candidateId, { 
     query: { enabled: !!candidateId, queryKey: getGetCandidateQueryKey(candidateId) } 
   });
+
+  useEffect(() => {
+    if (candidate && selectedChecks.length === 0) {
+      if (candidate.screeningType === 'tenant') {
+        setSelectedChecks(['criminal', 'credit', 'eviction']);
+      } else {
+        setSelectedChecks(['criminal', 'employment', 'education', 'driving']);
+      }
+    }
+  }, [candidate, selectedChecks.length]);
 
   const { data: runs, isLoading: runsLoading } = useListScreeningRuns(candidateId, {
     query: { enabled: !!candidateId, queryKey: getListScreeningRunsQueryKey(candidateId) }
@@ -151,12 +160,16 @@ export default function CandidateDetail() {
     switch (status) {
       case 'clear':
       case 'clean':
-      case 'confirmed': return <CheckCircle2 className="text-green-500" />;
+      case 'confirmed': 
+      case 'negative': return <CheckCircle2 className="text-green-500" />;
       case 'flag':
       case 'violations':
-      case 'discrepancy': return <AlertTriangle className="text-red-500" />;
+      case 'discrepancy': 
+      case 'positive': return <AlertTriangle className="text-red-500" />;
       case 'review':
-      case 'unverified': return <Clock className="text-amber-500" />;
+      case 'unverified': 
+      case 'awaiting_collection':
+      case 'inconclusive': return <Clock className="text-amber-500" />;
       default: return <Activity className="text-muted-foreground" />;
     }
   };
@@ -198,6 +211,15 @@ export default function CandidateDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight">{candidate.name}</h1>
               {getStatusBadge(candidate.status)}
+              {candidate.screeningType && (
+                <Badge variant="outline" className="ml-2 font-medium bg-background text-muted-foreground">
+                  {candidate.screeningType === 'tenant' ? (
+                    <><Home className="w-3 h-3 mr-1" /> Tenant Screening</>
+                  ) : (
+                    <><Briefcase className="w-3 h-3 mr-1" /> Employment Screening</>
+                  )}
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground mt-1">{candidate.position}</p>
           </div>
@@ -263,33 +285,70 @@ export default function CandidateDetail() {
                     <Label htmlFor="check-criminal" className="flex-1 cursor-pointer font-medium">National Criminal Database</Label>
                     <Badge variant="secondary">Instant</Badge>
                   </div>
-                  <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
-                    <Checkbox id="check-employment" checked={selectedChecks.includes('employment')} 
-                      onCheckedChange={(checked) => {
-                        setSelectedChecks(prev => checked ? [...prev, 'employment'] : prev.filter(c => c !== 'employment'))
-                      }} 
-                    />
-                    <Label htmlFor="check-employment" className="flex-1 cursor-pointer font-medium">Employment Verification</Label>
-                    <Badge variant="secondary">1-3 Days</Badge>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
-                    <Checkbox id="check-education" checked={selectedChecks.includes('education')} 
-                      onCheckedChange={(checked) => {
-                        setSelectedChecks(prev => checked ? [...prev, 'education'] : prev.filter(c => c !== 'education'))
-                      }} 
-                    />
-                    <Label htmlFor="check-education" className="flex-1 cursor-pointer font-medium">Education Verification</Label>
-                    <Badge variant="secondary">1-2 Days</Badge>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
-                    <Checkbox id="check-driving" checked={selectedChecks.includes('driving')} 
-                      onCheckedChange={(checked) => {
-                        setSelectedChecks(prev => checked ? [...prev, 'driving'] : prev.filter(c => c !== 'driving'))
-                      }} 
-                    />
-                    <Label htmlFor="check-driving" className="flex-1 cursor-pointer font-medium">Motor Vehicle Record</Label>
-                    <Badge variant="secondary">Instant</Badge>
-                  </div>
+                  
+                  {candidate?.screeningType !== 'tenant' && (
+                    <>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-employment" checked={selectedChecks.includes('employment')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'employment'] : prev.filter(c => c !== 'employment'))
+                          }} 
+                        />
+                        <Label htmlFor="check-employment" className="flex-1 cursor-pointer font-medium">Employment Verification</Label>
+                        <Badge variant="secondary">1-3 Days</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-education" checked={selectedChecks.includes('education')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'education'] : prev.filter(c => c !== 'education'))
+                          }} 
+                        />
+                        <Label htmlFor="check-education" className="flex-1 cursor-pointer font-medium">Education Verification</Label>
+                        <Badge variant="secondary">1-2 Days</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-driving" checked={selectedChecks.includes('driving')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'driving'] : prev.filter(c => c !== 'driving'))
+                          }} 
+                        />
+                        <Label htmlFor="check-driving" className="flex-1 cursor-pointer font-medium">Motor Vehicle Record</Label>
+                        <Badge variant="secondary">Instant</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-drug_health" checked={selectedChecks.includes('drug_health')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'drug_health'] : prev.filter(c => c !== 'drug_health'))
+                          }} 
+                        />
+                        <Label htmlFor="check-drug_health" className="flex-1 cursor-pointer font-medium">Drug & Health Screening</Label>
+                        <Badge variant="secondary">1-4 Days</Badge>
+                      </div>
+                    </>
+                  )}
+
+                  {candidate?.screeningType === 'tenant' && (
+                    <>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-credit" checked={selectedChecks.includes('credit')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'credit'] : prev.filter(c => c !== 'credit'))
+                          }} 
+                        />
+                        <Label htmlFor="check-credit" className="flex-1 cursor-pointer font-medium">Credit Check</Label>
+                        <Badge variant="secondary">Instant</Badge>
+                      </div>
+                      <div className="flex items-center space-x-2 p-3 border rounded-md bg-muted/20">
+                        <Checkbox id="check-eviction" checked={selectedChecks.includes('eviction')} 
+                          onCheckedChange={(checked) => {
+                            setSelectedChecks(prev => checked ? [...prev, 'eviction'] : prev.filter(c => c !== 'eviction'))
+                          }} 
+                        />
+                        <Label htmlFor="check-eviction" className="flex-1 cursor-pointer font-medium">Eviction History</Label>
+                        <Badge variant="secondary">Instant</Badge>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsRunScreenOpen(false)}>Cancel</Button>

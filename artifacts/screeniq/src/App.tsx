@@ -11,6 +11,10 @@ import AdverseActionList from '@/pages/adverse-action/index';
 import AdverseActionDetail from '@/pages/adverse-action/detail';
 import ComplianceMetrics from '@/pages/compliance';
 import CandidatePortal from '@/pages/portal';
+import Analytics from '@/pages/analytics';
+import Benchmarks from '@/pages/analytics/benchmarks';
+import WBRReport from '@/pages/reports/wbr';
+import TenantScreening from '@/pages/tenant';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,9 +34,13 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/candidates" component={CandidatesList} />
       <Route path="/candidates/:id" component={CandidateDetail} />
+      <Route path="/tenant" component={TenantScreening} />
       <Route path="/adverse-action" component={AdverseActionList} />
       <Route path="/adverse-action/:id" component={AdverseActionDetail} />
       <Route path="/compliance" component={ComplianceMetrics} />
+      <Route path="/analytics" component={Analytics} />
+      <Route path="/analytics/benchmarks" component={Benchmarks} />
+      <Route path="/reports/wbr" component={WBRReport} />
       <Route path="/portal/:token" component={CandidatePortal} />
       <Route component={NotFound} />
     </Switch>

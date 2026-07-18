@@ -1,1 +1,2 @@
 - [ScreenIQ Architecture](screeniq-arch.md) — FastAPI backend, absolute workflow path required, zod.looseObject codegen fix, root-only hook imports
+- [ScreenIQ Phase 2](screeniq-phase2.md) — analytics/reports/tenant pages done; candidates router screening_type fix; seeding caveat

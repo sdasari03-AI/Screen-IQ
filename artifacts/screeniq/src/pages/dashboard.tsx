@@ -1,14 +1,19 @@
-import { useGetDashboardStats, useGetRecentActivity } from "@workspace/api-client-react";
+import { useGetDashboardStats, useGetRecentActivity, useGetBacklogHealth, getGetBacklogHealthQueryKey } from "@workspace/api-client-react";
 import { AppLayout } from "@/components/app-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, AlertTriangle, CheckCircle2, Clock, Users, ShieldAlert } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Clock, Users, ShieldAlert, AlertCircle, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 
 export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
   const { data: activity, isLoading: activityLoading } = useGetRecentActivity();
+  const { data: backlog, isLoading: backlogLoading } = useGetBacklogHealth({
+    query: { queryKey: getGetBacklogHealthQueryKey() }
+  });
+
+  const isBacklogUnhealthy = backlog ? (backlog.overdueCount > 0 || backlog.onTimeDeliveryRate < 0.85) : false;
 
   return (
     <AppLayout>
@@ -110,6 +115,55 @@ export default function Dashboard() {
 
           {/* Quick Actions / Risk Overview */}
           <div className="space-y-8">
+            <Card className={`shadow-sm border-2 ${isBacklogUnhealthy ? 'border-red-500/50 bg-red-50/10' : 'border-green-500/50 bg-green-50/10'}`}>
+              <CardHeader className="border-b bg-muted/10 pb-4">
+                <CardTitle className="flex justify-between items-center text-base">
+                  Backlog Health
+                  {backlogLoading ? (
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                  ) : isBacklogUnhealthy ? (
+                    <AlertCircle className="text-red-500 w-5 h-5" />
+                  ) : (
+                    <CheckCircle2 className="text-green-500 w-5 h-5" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-5 space-y-4">
+                {backlogLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ) : backlog ? (
+                  <>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2"><Clock className="w-4 h-4" /> Pending Total</span>
+                      <span className="font-semibold">{backlog.pendingTotal}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className={`flex items-center gap-2 ${backlog.overdueCount > 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                        <AlertTriangle className="w-4 h-4" /> Overdue SLAs
+                      </span>
+                      <span className={`font-semibold ${backlog.overdueCount > 0 ? 'text-red-600' : ''}`}>{backlog.overdueCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2"><RefreshCw className="w-4 h-4" /> On-Time Delivery</span>
+                      <span className={`font-semibold ${backlog.onTimeDeliveryRate < 0.85 ? 'text-red-600' : 'text-green-600'}`}>
+                        {(backlog.onTimeDeliveryRate * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground flex items-center gap-2"><Activity className="w-4 h-4" /> 7-Day Throughput</span>
+                      <span className="font-semibold">{backlog.throughput7Days} screens</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground text-center py-2">No backlog data available</div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className="shadow-sm">
               <CardHeader className="border-b bg-muted/20">
                 <CardTitle>Risk Breakdown</CardTitle>

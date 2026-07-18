@@ -17,6 +17,7 @@ class CandidateInput(BaseModel):
     position: str
     email: str | None = None
     phone: str | None = None
+    screeningType: str = "employment"
 
 
 class CandidateUpdate(BaseModel):
@@ -27,6 +28,7 @@ class CandidateUpdate(BaseModel):
     email: str | None = None
     phone: str | None = None
     status: str | None = None
+    screeningType: str | None = None
 
 
 def row_to_candidate(row) -> dict[str, Any]:
@@ -43,28 +45,33 @@ def row_to_candidate(row) -> dict[str, Any]:
         "latestRunId": row[9],
         "createdAt": row[10].isoformat() if row[10] else None,
         "updatedAt": row[11].isoformat() if row[11] else None,
+        "screeningType": row[12] if len(row) > 12 else "employment",
     }
 
 
 @router.get("")
-def list_candidates(status: str | None = None, search: str | None = None):
+def list_candidates(status: str | None = None, search: str | None = None, screeningType: str | None = None):
     with get_db() as conn:
         with conn.cursor() as cur:
             query = """
                 SELECT c.id, c.name, c.date_of_birth, c.ssn_last_four, c.position, c.email, c.phone,
                        c.status, c.portal_token,
                        (SELECT id FROM screening_runs WHERE candidate_id = c.id ORDER BY id DESC LIMIT 1) as latest_run_id,
-                       c.created_at, c.updated_at
+                       c.created_at, c.updated_at,
+                       COALESCE(c.screening_type, 'employment') as screening_type
                 FROM candidates c
                 WHERE 1=1
             """
             params: list = []
             if status:
-                query += f" AND c.status = %s"
+                query += " AND c.status = %s"
                 params.append(status)
             if search:
-                query += f" AND (c.name ILIKE %s OR c.position ILIKE %s)"
+                query += " AND (c.name ILIKE %s OR c.position ILIKE %s)"
                 params.extend([f"%{search}%", f"%{search}%"])
+            if screeningType:
+                query += " AND COALESCE(c.screening_type, 'employment') = %s"
+                params.append(screeningType)
             query += " ORDER BY c.created_at DESC"
             cur.execute(query, params)
             rows = cur.fetchall()
@@ -78,10 +85,10 @@ def create_candidate(body: CandidateInput):
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO candidates (name, date_of_birth, ssn_last_four, position, email, phone, status, portal_token, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s)
-                RETURNING id, name, date_of_birth, ssn_last_four, position, email, phone, status, portal_token, NULL, created_at, updated_at
-            """, (body.name, body.dateOfBirth, body.ssnLastFour, body.position, body.email, body.phone, portal_token, now, now))
+                INSERT INTO candidates (name, date_of_birth, ssn_last_four, position, email, phone, status, portal_token, screening_type, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s)
+                RETURNING id, name, date_of_birth, ssn_last_four, position, email, phone, status, portal_token, NULL, created_at, updated_at, screening_type
+            """, (body.name, body.dateOfBirth, body.ssnLastFour, body.position, body.email, body.phone, portal_token, body.screeningType, now, now))
             row = cur.fetchone()
             return row_to_candidate(row)
 
@@ -94,7 +101,8 @@ def get_candidate(id: int):
                 SELECT c.id, c.name, c.date_of_birth, c.ssn_last_four, c.position, c.email, c.phone,
                        c.status, c.portal_token,
                        (SELECT id FROM screening_runs WHERE candidate_id = c.id ORDER BY id DESC LIMIT 1),
-                       c.created_at, c.updated_at
+                       c.created_at, c.updated_at,
+                       COALESCE(c.screening_type, 'employment') as screening_type
                 FROM candidates c WHERE c.id = %s
             """, (id,))
             row = cur.fetchone()
@@ -128,6 +136,9 @@ def update_candidate(id: int, body: CandidateUpdate):
     if body.status is not None:
         updates.append("status = %s")
         values.append(body.status)
+    if body.screeningType is not None:
+        updates.append("screening_type = %s")
+        values.append(body.screeningType)
     updates.append("updated_at = %s")
     values.append(datetime.now(timezone.utc))
     values.append(id)
@@ -145,7 +156,8 @@ def update_candidate(id: int, body: CandidateUpdate):
                 SELECT c.id, c.name, c.date_of_birth, c.ssn_last_four, c.position, c.email, c.phone,
                        c.status, c.portal_token,
                        (SELECT id FROM screening_runs WHERE candidate_id = c.id ORDER BY id DESC LIMIT 1),
-                       c.created_at, c.updated_at
+                       c.created_at, c.updated_at,
+                       COALESCE(c.screening_type, 'employment') as screening_type
                 FROM candidates c WHERE c.id = %s
             """, (id,))
             row = cur.fetchone()

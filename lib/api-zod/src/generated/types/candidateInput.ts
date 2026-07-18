@@ -5,6 +5,7 @@
  * ScreenIQ Background Screening Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { CandidateInputScreeningType } from './candidateInputScreeningType';
 
 export interface CandidateInput {
   /** @minLength 1 */
@@ -16,4 +17,5 @@ export interface CandidateInput {
   position: string;
   email?: string;
   phone?: string;
+  screeningType?: CandidateInputScreeningType;
 }

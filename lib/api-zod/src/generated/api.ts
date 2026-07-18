@@ -24,6 +24,8 @@ export const ListCandidatesQueryParams = zod.object({
   "search": zod.coerce.string().optional()
 })
 
+export const listCandidatesResponseScreeningTypeDefault = `employment`;
+
 export const ListCandidatesResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -33,6 +35,7 @@ export const ListCandidatesResponseItem = zod.object({
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'flagged', 'adverse_action']),
+  "screeningType": zod.enum(['employment', 'tenant']).default(listCandidatesResponseScreeningTypeDefault),
   "portalToken": zod.string().optional(),
   "latestRunId": zod.number().nullish(),
   "createdAt": zod.string(),
@@ -48,7 +51,7 @@ export const ListCandidatesResponse = zod.array(ListCandidatesResponseItem)
 export const createCandidateBodySsnLastFourMax = 4;
 
 
-
+export const createCandidateBodyScreeningTypeDefault = `employment`;
 
 export const CreateCandidateBody = zod.object({
   "name": zod.string().min(1),
@@ -56,8 +59,11 @@ export const CreateCandidateBody = zod.object({
   "ssnLastFour": zod.string().max(createCandidateBodySsnLastFourMax).optional(),
   "position": zod.string().min(1),
   "email": zod.string().optional(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "screeningType": zod.enum(['employment', 'tenant']).default(createCandidateBodyScreeningTypeDefault)
 })
+
+export const createCandidateResponseScreeningTypeDefault = `employment`;
 
 export const CreateCandidateResponse = zod.object({
   "id": zod.number(),
@@ -68,6 +74,7 @@ export const CreateCandidateResponse = zod.object({
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'flagged', 'adverse_action']),
+  "screeningType": zod.enum(['employment', 'tenant']).default(createCandidateResponseScreeningTypeDefault),
   "portalToken": zod.string().optional(),
   "latestRunId": zod.number().nullish(),
   "createdAt": zod.string(),
@@ -82,6 +89,8 @@ export const GetCandidateParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getCandidateResponseScreeningTypeDefault = `employment`;
+
 export const GetCandidateResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -91,6 +100,7 @@ export const GetCandidateResponse = zod.object({
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'flagged', 'adverse_action']),
+  "screeningType": zod.enum(['employment', 'tenant']).default(getCandidateResponseScreeningTypeDefault),
   "portalToken": zod.string().optional(),
   "latestRunId": zod.number().nullish(),
   "createdAt": zod.string(),
@@ -115,6 +125,8 @@ export const UpdateCandidateBody = zod.object({
   "status": zod.string().optional()
 })
 
+export const updateCandidateResponseScreeningTypeDefault = `employment`;
+
 export const UpdateCandidateResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -124,6 +136,7 @@ export const UpdateCandidateResponse = zod.object({
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'flagged', 'adverse_action']),
+  "screeningType": zod.enum(['employment', 'tenant']).default(updateCandidateResponseScreeningTypeDefault),
   "portalToken": zod.string().optional(),
   "latestRunId": zod.number().nullish(),
   "createdAt": zod.string(),
@@ -164,8 +177,8 @@ export const RunScreeningResponse = zod.object({
   "checks": zod.array(zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -197,8 +210,8 @@ export const ListScreeningRunsResponseItem = zod.object({
   "checks": zod.array(zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -232,8 +245,8 @@ export const GetScreeningRunResponse = zod.object({
   "checks": zod.array(zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -257,8 +270,8 @@ export const ListCheckResultsParams = zod.object({
 export const ListCheckResultsResponseItem = zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -603,6 +616,8 @@ export const GetCandidatePortalParams = zod.object({
   "portalToken": zod.coerce.string()
 })
 
+export const getCandidatePortalResponseCandidateScreeningTypeDefault = `employment`;
+
 export const GetCandidatePortalResponse = zod.object({
   "candidate": zod.object({
   "id": zod.number(),
@@ -613,6 +628,7 @@ export const GetCandidatePortalResponse = zod.object({
   "email": zod.string().nullish(),
   "phone": zod.string().nullish(),
   "status": zod.enum(['pending', 'in_progress', 'completed', 'flagged', 'adverse_action']),
+  "screeningType": zod.enum(['employment', 'tenant']).default(getCandidatePortalResponseCandidateScreeningTypeDefault),
   "portalToken": zod.string().optional(),
   "latestRunId": zod.number().nullish(),
   "createdAt": zod.string(),
@@ -630,8 +646,8 @@ export const GetCandidatePortalResponse = zod.object({
   "checks": zod.array(zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -645,8 +661,8 @@ export const GetCandidatePortalResponse = zod.object({
   "checkResults": zod.array(zod.object({
   "id": zod.number(),
   "screeningRunId": zod.number(),
-  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving']),
-  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean']),
+  "checkType": zod.enum(['criminal', 'employment', 'education', 'driving', 'drug_health', 'credit', 'eviction']),
+  "status": zod.enum(['clear', 'flag', 'review', 'confirmed', 'unverified', 'discrepancy', 'violations', 'suspended', 'clean', 'negative', 'positive', 'awaiting_collection', 'inconclusive']),
   "statusLabel": zod.string().optional(),
   "dataSource": zod.string(),
   "confidenceScore": zod.number(),
@@ -679,6 +695,117 @@ export const GetCandidatePortalResponse = zod.object({
   "closedAt": zod.string().nullish(),
   "createdAt": zod.string()
 }).optional()
+})
+
+
+/**
+ * @summary Checkr-style OKR metrics — attach rate, conversion rate, RPR, time-to-value
+ */
+export const GetBusinessMetricsResponse = zod.object({
+  "attachRate": zod.number(),
+  "conversionRate": zod.number(),
+  "reRunRate": zod.number(),
+  "avgTimeToValueHours": zod.number(),
+  "avgTurnaroundMs": zod.number().optional(),
+  "totalCandidates": zod.number(),
+  "totalRuns": zod.number(),
+  "completedRuns": zod.number().optional(),
+  "adverseActionsOpen": zod.number().optional(),
+  "checkTypeDistribution": zod.object({
+
+}).optional()
+})
+
+
+/**
+ * @summary Industry benchmarking by check type
+ */
+export const GetBenchmarksResponseItem = zod.object({
+  "checkType": zod.string(),
+  "ourAvgTurnaroundMs": zod.number(),
+  "industryAvgTurnaroundMs": zod.number(),
+  "turnaroundDeltaPct": zod.number(),
+  "ourFlagRate": zod.number(),
+  "industryFlagRate": zod.number(),
+  "ourDisputeRate": zod.number().optional(),
+  "industryDisputeRate": zod.number().optional(),
+  "source": zod.string().optional(),
+  "sampleSize": zod.number().optional()
+})
+export const GetBenchmarksResponse = zod.array(GetBenchmarksResponseItem)
+
+
+/**
+ * @summary Backlog and implementation health metrics
+ */
+export const GetBacklogHealthResponse = zod.object({
+  "pendingTotal": zod.number(),
+  "overdueCount": zod.number(),
+  "onTimeDeliveryRate": zod.number(),
+  "escalationCount": zod.number(),
+  "avgPendingAgeHours": zod.number().optional(),
+  "pendingByCheckType": zod.object({
+
+}).optional(),
+  "throughput7Days": zod.number(),
+  "totalCompleted": zod.number().optional()
+})
+
+
+/**
+ * @summary Candidate friction analytics by check type
+ */
+export const GetFrictionAnalyticsResponse = zod.object({
+  "overallFrictionScore": zod.number(),
+  "byCheckType": zod.array(zod.object({
+  "checkType": zod.string(),
+  "avgProcessingMs": zod.number(),
+  "flagRate": zod.number(),
+  "disputeRate": zod.number(),
+  "avgConfidencePct": zod.number().optional(),
+  "frictionScore": zod.number(),
+  "sampleSize": zod.number().optional()
+})),
+  "portalEngagementRate": zod.number().optional(),
+  "totalDisputes": zod.number(),
+  "candidatesDisputed": zod.number().optional(),
+  "totalCandidates": zod.number().optional()
+})
+
+
+/**
+ * @summary Get the latest AI-generated Weekly Business Review report
+ */
+export const GetWbrReportResponse = zod.object({
+  "id": zod.number().optional(),
+  "weekStart": zod.string(),
+  "weekEnd": zod.string(),
+  "content": zod.string(),
+  "summary": zod.string(),
+  "keyMetrics": zod.object({
+
+}).optional(),
+  "risks": zod.array(zod.string()).optional(),
+  "recommendations": zod.array(zod.string()).optional(),
+  "generatedAt": zod.string().nullable()
+})
+
+
+/**
+ * @summary Force-generate a fresh Weekly Business Review report
+ */
+export const GenerateWbrReportResponse = zod.object({
+  "id": zod.number().optional(),
+  "weekStart": zod.string(),
+  "weekEnd": zod.string(),
+  "content": zod.string(),
+  "summary": zod.string(),
+  "keyMetrics": zod.object({
+
+}).optional(),
+  "risks": zod.array(zod.string()).optional(),
+  "recommendations": zod.array(zod.string()).optional(),
+  "generatedAt": zod.string().nullable()
 })
 
 

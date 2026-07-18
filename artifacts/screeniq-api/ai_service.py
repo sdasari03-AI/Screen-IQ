@@ -1,5 +1,6 @@
 """
-OpenAI-powered risk assessment and compliance insight generation.
+OpenAI-powered risk assessment, compliance insight, adverse action notices,
+and WBR report generation.
 Uses Replit AI Integrations for OpenAI access.
 """
 import os
@@ -19,7 +20,6 @@ def get_openai_client() -> OpenAI:
         if base_url:
             _client = OpenAI(base_url=base_url, api_key=api_key)
         else:
-            # Fallback: direct OpenAI (user's key)
             _client = OpenAI()
     return _client
 
@@ -96,6 +96,9 @@ def generate_compliance_insight(metrics: dict[str, Any]) -> dict[str, Any]:
         "employment": 1800,
         "education": 900,
         "driving": 600,
+        "drug_health": 4200,
+        "credit": 1100,
+        "eviction": 900,
     }
 
     prompt = f"""You are a compliance analytics expert reviewing background screening metrics.
@@ -195,3 +198,66 @@ Format as a formal business letter."""
     )
 
     return response.choices[0].message.content or ""
+
+
+def generate_wbr_report(metrics: dict[str, Any]) -> dict[str, Any]:
+    """
+    Generate an AI-powered Weekly Business Review (WBR) report.
+    RealPage-style executive narrative with metrics, risks, and recommendations.
+    """
+    wow_change = metrics["screenings_this_week"] - metrics["screenings_last_week"]
+    wow_pct = (wow_change / metrics["screenings_last_week"] * 100) if metrics["screenings_last_week"] > 0 else 0
+
+    prompt = f"""You are a Director of Operations at a background screening platform presenting the weekly business review (WBR).
+
+Week: {metrics['week_start']} to {metrics['week_end']}
+
+Key Metrics This Week:
+- New screenings initiated: {metrics['screenings_this_week']} (vs {metrics['screenings_last_week']} last week, {wow_pct:+.1f}% WoW)
+- Screenings completed: {metrics['completed_this_week']}
+- New candidates added: {metrics['new_candidates']}
+- New disputes filed: {metrics['new_disputes']}
+- New adverse actions initiated: {metrics['new_adverse_actions']}
+- Current pending backlog: {metrics['pending_backlog']} screenings
+- Flagged candidates awaiting review: {metrics['flagged_candidates']}
+- Avg turnaround time: {metrics['avg_turnaround_ms']}ms
+- Check type breakdown this week: {json.dumps(metrics['check_type_breakdown'])}
+- Platform totals: {metrics['total_candidates']} total candidates, {metrics['total_screenings']} total screenings
+
+Generate a professional WBR executive narrative. Be specific, cite numbers, and flag anything that needs attention.
+
+Respond in JSON:
+{{
+  "summary": "2-3 sentence exec summary of the week",
+  "content": "Full WBR narrative (4-6 paragraphs, markdown formatted, covering: week highlights, volume trends, quality metrics, backlog/operational health, and outlook)",
+  "key_metrics": {{
+    "screenings_wow_pct": <number>,
+    "completion_rate": <0-1 number>,
+    "backlog_health": "healthy|watch|critical",
+    "dispute_trend": "improving|stable|worsening"
+  }},
+  "risks": ["risk1", "risk2"],
+  "recommendations": ["action1", "action2", "action3"]
+}}"""
+
+    client = get_openai_client()
+    response = client.chat.completions.create(
+        model="gpt-5.6-luna",
+        max_completion_tokens=1500,
+        messages=[
+            {"role": "system", "content": "You are an operations director at a background screening company. Write crisp, data-driven executive narratives. Always respond with valid JSON."},
+            {"role": "user", "content": prompt},
+        ],
+        response_format={"type": "json_object"},
+    )
+
+    content = response.choices[0].message.content
+    result = json.loads(content)
+
+    return {
+        "summary": result.get("summary", ""),
+        "content": result.get("content", ""),
+        "key_metrics": result.get("key_metrics", {}),
+        "risks": result.get("risks", []),
+        "recommendations": result.get("recommendations", []),
+    }

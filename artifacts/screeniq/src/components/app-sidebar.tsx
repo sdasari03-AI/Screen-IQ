@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from "@/components/ui/sidebar";
-import { LayoutDashboard, Users, ShieldAlert, FileWarning, BarChart3, ShieldCheck, Activity, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, FileWarning, BarChart3, ShieldCheck, Activity, LogOut, Home, LineChart, FileText } from "lucide-react";
 
 export function AppSidebar() {
   const [location] = useLocation();
@@ -8,8 +8,11 @@ export function AppSidebar() {
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Candidates", href: "/candidates", icon: Users },
+    { label: "Tenant Screening", href: "/tenant", icon: Home },
     { label: "Adverse Action", href: "/adverse-action", icon: ShieldAlert },
-    { label: "Compliance", href: "/compliance", icon: BarChart3 },
+    { label: "Compliance", href: "/compliance", icon: ShieldCheck },
+    { label: "Analytics", href: "/analytics", icon: LineChart },
+    { label: "WBR Report", href: "/reports/wbr", icon: FileText },
   ];
 
   return (

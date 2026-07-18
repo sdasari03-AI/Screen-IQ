@@ -20,6 +20,14 @@ export const CandidateStatus = {
   adverse_action: 'adverse_action',
 } as const;
 
+export type CandidateScreeningType = typeof CandidateScreeningType[keyof typeof CandidateScreeningType];
+
+
+export const CandidateScreeningType = {
+  employment: 'employment',
+  tenant: 'tenant',
+} as const;
+
 export interface Candidate {
   id: number;
   name: string;
@@ -33,12 +41,21 @@ export interface Candidate {
   /** @nullable */
   phone?: string | null;
   status: CandidateStatus;
+  screeningType?: CandidateScreeningType;
   portalToken?: string;
   /** @nullable */
   latestRunId?: number | null;
   createdAt: string;
   updatedAt?: string;
 }
+
+export type CandidateInputScreeningType = typeof CandidateInputScreeningType[keyof typeof CandidateInputScreeningType];
+
+
+export const CandidateInputScreeningType = {
+  employment: 'employment',
+  tenant: 'tenant',
+} as const;
 
 export interface CandidateInput {
   /** @minLength 1 */
@@ -50,6 +67,7 @@ export interface CandidateInput {
   position: string;
   email?: string;
   phone?: string;
+  screeningType?: CandidateInputScreeningType;
 }
 
 export interface CandidateUpdate {
@@ -84,6 +102,9 @@ export const CheckResultCheckType = {
   employment: 'employment',
   education: 'education',
   driving: 'driving',
+  drug_health: 'drug_health',
+  credit: 'credit',
+  eviction: 'eviction',
 } as const;
 
 export type CheckResultStatus = typeof CheckResultStatus[keyof typeof CheckResultStatus];
@@ -99,6 +120,10 @@ export const CheckResultStatus = {
   violations: 'violations',
   suspended: 'suspended',
   clean: 'clean',
+  negative: 'negative',
+  positive: 'positive',
+  awaiting_collection: 'awaiting_collection',
+  inconclusive: 'inconclusive',
 } as const;
 
 export type CheckResultDetails = { [key: string]: unknown };
@@ -336,6 +361,81 @@ export interface ActivityItem {
   timestamp: string;
   /** @nullable */
   riskLevel?: string | null;
+}
+
+export type BusinessMetricsCheckTypeDistribution = { [key: string]: unknown };
+
+export interface BusinessMetrics {
+  attachRate: number;
+  conversionRate: number;
+  reRunRate: number;
+  avgTimeToValueHours: number;
+  avgTurnaroundMs?: number;
+  totalCandidates: number;
+  totalRuns: number;
+  completedRuns?: number;
+  adverseActionsOpen?: number;
+  checkTypeDistribution?: BusinessMetricsCheckTypeDistribution;
+}
+
+export interface BenchmarkItem {
+  checkType: string;
+  ourAvgTurnaroundMs: number;
+  industryAvgTurnaroundMs: number;
+  turnaroundDeltaPct: number;
+  ourFlagRate: number;
+  industryFlagRate: number;
+  ourDisputeRate?: number;
+  industryDisputeRate?: number;
+  source?: string;
+  sampleSize?: number;
+}
+
+export type BacklogHealthPendingByCheckType = { [key: string]: unknown };
+
+export interface BacklogHealth {
+  pendingTotal: number;
+  overdueCount: number;
+  onTimeDeliveryRate: number;
+  escalationCount: number;
+  avgPendingAgeHours?: number;
+  pendingByCheckType?: BacklogHealthPendingByCheckType;
+  throughput7Days: number;
+  totalCompleted?: number;
+}
+
+export interface FrictionCheckType {
+  checkType: string;
+  avgProcessingMs: number;
+  flagRate: number;
+  disputeRate: number;
+  avgConfidencePct?: number;
+  frictionScore: number;
+  sampleSize?: number;
+}
+
+export interface FrictionAnalytics {
+  overallFrictionScore: number;
+  byCheckType: FrictionCheckType[];
+  portalEngagementRate?: number;
+  totalDisputes: number;
+  candidatesDisputed?: number;
+  totalCandidates?: number;
+}
+
+export type WBRReportKeyMetrics = { [key: string]: unknown };
+
+export interface WBRReport {
+  id?: number;
+  weekStart: string;
+  weekEnd: string;
+  content: string;
+  summary: string;
+  keyMetrics?: WBRReportKeyMetrics;
+  risks?: string[];
+  recommendations?: string[];
+  /** @nullable */
+  generatedAt: string | null;
 }
 
 export interface CandidatePortal {

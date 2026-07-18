@@ -25,6 +25,9 @@ import type {
   AdverseActionInput,
   AdverseActionNotice,
   AdverseActionUpdate,
+  BacklogHealth,
+  BenchmarkItem,
+  BusinessMetrics,
   Candidate,
   CandidateInput,
   CandidatePortal,
@@ -37,13 +40,15 @@ import type {
   Dispute,
   DisputeInput,
   DisputeUpdate,
+  FrictionAnalytics,
   GetComplianceTimeSeriesParams,
   HealthStatus,
   ListCandidatesParams,
   NoticeInput,
   RiskAssessment,
   ScreeningInput,
-  ScreeningRun
+  ScreeningRun,
+  WBRReport
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2129,4 +2134,460 @@ export function useGetCandidatePortal<TData = Awaited<ReturnType<typeof getCandi
 
 
 
+
+export const getGetBusinessMetricsUrl = () => {
+
+
+
+
+  return `/api/analytics/business-metrics`
+}
+
+/**
+ * @summary Checkr-style OKR metrics — attach rate, conversion rate, RPR, time-to-value
+ */
+export const getBusinessMetrics = async ( options?: RequestInit): Promise<BusinessMetrics> => {
+
+  return customFetch<BusinessMetrics>(getGetBusinessMetricsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBusinessMetricsQueryKey = () => {
+    return [
+    `/api/analytics/business-metrics`
+    ] as const;
+    }
+
+
+export const getGetBusinessMetricsQueryOptions = <TData = Awaited<ReturnType<typeof getBusinessMetrics>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBusinessMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBusinessMetricsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBusinessMetrics>>> = ({ signal }) => getBusinessMetrics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBusinessMetrics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBusinessMetricsQueryResult = NonNullable<Awaited<ReturnType<typeof getBusinessMetrics>>>
+export type GetBusinessMetricsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Checkr-style OKR metrics — attach rate, conversion rate, RPR, time-to-value
+ */
+
+export function useGetBusinessMetrics<TData = Awaited<ReturnType<typeof getBusinessMetrics>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBusinessMetrics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBusinessMetricsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBenchmarksUrl = () => {
+
+
+
+
+  return `/api/analytics/benchmarks`
+}
+
+/**
+ * @summary Industry benchmarking by check type
+ */
+export const getBenchmarks = async ( options?: RequestInit): Promise<BenchmarkItem[]> => {
+
+  return customFetch<BenchmarkItem[]>(getGetBenchmarksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBenchmarksQueryKey = () => {
+    return [
+    `/api/analytics/benchmarks`
+    ] as const;
+    }
+
+
+export const getGetBenchmarksQueryOptions = <TData = Awaited<ReturnType<typeof getBenchmarks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBenchmarks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBenchmarksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBenchmarks>>> = ({ signal }) => getBenchmarks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBenchmarks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBenchmarksQueryResult = NonNullable<Awaited<ReturnType<typeof getBenchmarks>>>
+export type GetBenchmarksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Industry benchmarking by check type
+ */
+
+export function useGetBenchmarks<TData = Awaited<ReturnType<typeof getBenchmarks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBenchmarks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBenchmarksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBacklogHealthUrl = () => {
+
+
+
+
+  return `/api/analytics/backlog`
+}
+
+/**
+ * @summary Backlog and implementation health metrics
+ */
+export const getBacklogHealth = async ( options?: RequestInit): Promise<BacklogHealth> => {
+
+  return customFetch<BacklogHealth>(getGetBacklogHealthUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBacklogHealthQueryKey = () => {
+    return [
+    `/api/analytics/backlog`
+    ] as const;
+    }
+
+
+export const getGetBacklogHealthQueryOptions = <TData = Awaited<ReturnType<typeof getBacklogHealth>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBacklogHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBacklogHealthQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBacklogHealth>>> = ({ signal }) => getBacklogHealth({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBacklogHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBacklogHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getBacklogHealth>>>
+export type GetBacklogHealthQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Backlog and implementation health metrics
+ */
+
+export function useGetBacklogHealth<TData = Awaited<ReturnType<typeof getBacklogHealth>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBacklogHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBacklogHealthQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetFrictionAnalyticsUrl = () => {
+
+
+
+
+  return `/api/analytics/friction`
+}
+
+/**
+ * @summary Candidate friction analytics by check type
+ */
+export const getFrictionAnalytics = async ( options?: RequestInit): Promise<FrictionAnalytics> => {
+
+  return customFetch<FrictionAnalytics>(getGetFrictionAnalyticsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFrictionAnalyticsQueryKey = () => {
+    return [
+    `/api/analytics/friction`
+    ] as const;
+    }
+
+
+export const getGetFrictionAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getFrictionAnalytics>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFrictionAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFrictionAnalyticsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFrictionAnalytics>>> = ({ signal }) => getFrictionAnalytics({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFrictionAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFrictionAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getFrictionAnalytics>>>
+export type GetFrictionAnalyticsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Candidate friction analytics by check type
+ */
+
+export function useGetFrictionAnalytics<TData = Awaited<ReturnType<typeof getFrictionAnalytics>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFrictionAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFrictionAnalyticsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWbrReportUrl = () => {
+
+
+
+
+  return `/api/reports/wbr`
+}
+
+/**
+ * @summary Get the latest AI-generated Weekly Business Review report
+ */
+export const getWbrReport = async ( options?: RequestInit): Promise<WBRReport> => {
+
+  return customFetch<WBRReport>(getGetWbrReportUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWbrReportQueryKey = () => {
+    return [
+    `/api/reports/wbr`
+    ] as const;
+    }
+
+
+export const getGetWbrReportQueryOptions = <TData = Awaited<ReturnType<typeof getWbrReport>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWbrReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWbrReportQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWbrReport>>> = ({ signal }) => getWbrReport({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWbrReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWbrReportQueryResult = NonNullable<Awaited<ReturnType<typeof getWbrReport>>>
+export type GetWbrReportQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the latest AI-generated Weekly Business Review report
+ */
+
+export function useGetWbrReport<TData = Awaited<ReturnType<typeof getWbrReport>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWbrReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWbrReportQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateWbrReportUrl = () => {
+
+
+
+
+  return `/api/reports/wbr/generate`
+}
+
+/**
+ * @summary Force-generate a fresh Weekly Business Review report
+ */
+export const generateWbrReport = async ( options?: RequestInit): Promise<WBRReport> => {
+
+  return customFetch<WBRReport>(getGenerateWbrReportUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGenerateWbrReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateWbrReport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateWbrReport>>, TError,void, TContext> => {
+
+const mutationKey = ['generateWbrReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateWbrReport>>, void> = () => {
+
+
+          return  generateWbrReport(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateWbrReportMutationResult = NonNullable<Awaited<ReturnType<typeof generateWbrReport>>>
+
+    export type GenerateWbrReportMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Force-generate a fresh Weekly Business Review report
+ */
+export const useGenerateWbrReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateWbrReport>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateWbrReport>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getGenerateWbrReportMutationOptions(options));
+    }
 

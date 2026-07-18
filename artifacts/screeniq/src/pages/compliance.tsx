@@ -1,9 +1,9 @@
 import { AppLayout } from "@/components/app-layout";
-import { useGetComplianceMetrics, useGetComplianceTimeSeries, useGetComplianceAiInsight } from "@workspace/api-client-react";
-import { getGetComplianceMetricsQueryKey, getGetComplianceTimeSeriesQueryKey, getGetComplianceAiInsightQueryKey } from "@workspace/api-client-react";
+import { useGetComplianceMetrics, useGetComplianceTimeSeries, useGetComplianceAiInsight, useGetBenchmarks } from "@workspace/api-client-react";
+import { getGetComplianceMetricsQueryKey, getGetComplianceTimeSeriesQueryKey, getGetComplianceAiInsightQueryKey, getGetBenchmarksQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrainCircuit, Clock, Scale, ShieldCheck, Database, TrendingDown, TrendingUp } from "lucide-react";
+import { BrainCircuit, Clock, Scale, ShieldCheck, Database, TrendingDown, TrendingUp, BarChart3, Activity } from "lucide-react";
 import { 
   Area, 
   AreaChart, 
@@ -29,6 +29,10 @@ export default function ComplianceMetrics() {
 
   const { data: insight, isLoading: insightLoading } = useGetComplianceAiInsight({
     query: { queryKey: getGetComplianceAiInsightQueryKey() }
+  });
+
+  const { data: benchmarks, isLoading: benchmarksLoading } = useGetBenchmarks({
+    query: { queryKey: getGetBenchmarksQueryKey() }
   });
 
   const formatChartDate = (dateStr: string) => {
@@ -236,6 +240,63 @@ export default function ComplianceMetrics() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Benchmarks Section */}
+        <Card className="shadow-sm border-border">
+          <CardHeader className="border-b bg-muted/20 pb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-primary" /> Industry Benchmarks
+                </CardTitle>
+                <CardDescription className="mt-1">Turnaround time comparison vs. platform averages.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {benchmarksLoading ? (
+              <div className="p-6 space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : benchmarks && benchmarks.length > 0 ? (
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-muted/40 uppercase text-xs font-semibold text-muted-foreground">
+                  <tr>
+                    <th className="px-6 py-4">Check Type</th>
+                    <th className="px-6 py-4 text-right">Our Turnaround</th>
+                    <th className="px-6 py-4 text-right">Industry Avg</th>
+                    <th className="px-6 py-4 text-right">Delta</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {benchmarks.map((item) => {
+                    const isFaster = item.turnaroundDeltaPct < 0;
+                    return (
+                      <tr key={item.checkType} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-6 py-4 font-medium capitalize">{item.checkType.replace('_', ' ')}</td>
+                        <td className="px-6 py-4 text-right">{item.ourAvgTurnaroundMs / 3600000} hrs</td>
+                        <td className="px-6 py-4 text-right text-muted-foreground">{item.industryAvgTurnaroundMs / 3600000} hrs</td>
+                        <td className="px-6 py-4 text-right">
+                          <span className={`inline-flex items-center justify-end font-semibold ${isFaster ? 'text-green-600' : 'text-red-600'}`}>
+                            {isFaster ? <TrendingDown size={14} className="mr-1" /> : <TrendingUp size={14} className="mr-1" />}
+                            {Math.abs(item.turnaroundDeltaPct).toFixed(1)}% {isFaster ? 'faster' : 'slower'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
+                <Activity className="w-10 h-10 mb-2 opacity-20" />
+                <p>Benchmark data not currently available.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
