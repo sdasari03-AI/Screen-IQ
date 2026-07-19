@@ -211,4 +211,4 @@ The `/architecture` page documents the reasoning behind every structural decisio
 
 ---
 
-*Built by Sai Dasari*
+*Built by Srinivas Dasari*
