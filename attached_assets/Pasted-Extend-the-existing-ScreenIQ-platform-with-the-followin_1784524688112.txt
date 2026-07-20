@@ -1,0 +1,256 @@
+Extend the existing ScreenIQ platform with the 
+following AI-native features. Do NOT rebuild or 
+replace anything that already exists. Add only 
+new features on top of the working platform.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 1 — AI INTELLIGENCE PANEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a new "AI Intelligence" tab to the 
+existing screening run detail page.
+
+Five sub-panels inside this tab:
+
+CHARGE CLASSIFIER
+- Input: raw criminal charge string
+- GPT-4o returns: category 
+  (Property/Violent/Drug/Traffic/
+  White Collar/Other), severity 
+  (Felony/Misdemeanor/Infraction), 
+  disposition (Convicted/Dismissed/
+  Acquitted/Pending), one-sentence 
+  plain language summary
+- Employer ruleset: dropdown to select 
+  "Flag felonies only" or 
+  "Ignore traffic violations" — 
+  AI applies ruleset automatically
+- Output badge: Green/Yellow/Red
+
+CHARGE EXPLAINER
+- One-click button on any flagged charge
+- GPT-4o returns: plain language meaning, 
+  typical sentence range, relevant statute, 
+  how common this charge is, context for 
+  fair hiring decision
+- Displayed as a readable card
+
+NAME MATCHER
+- For every candidate, AI identifies 
+  common aliases, married/maiden variants, 
+  hyphenated combinations
+- Confidence score per variant (0-100%)
+- Shows: how many variants searched, 
+  how many returned records, 
+  any new matches found under aliases
+
+ROLE MATCHER
+- Candidate's claimed job title and 
+  employer vs verification record
+- GPT-4o flags: Confirmed / Discrepancy 
+  / Fabrication / Unable to verify
+- Shows exact mismatch text:
+  "Claimed: Senior Engineer — 
+   Record shows: Engineer II"
+
+DOC INSPECTOR
+- Upload zone for pay stubs, bank 
+  statements, offer letters
+- GPT-4o Vision scans for: font 
+  inconsistencies, alignment issues, 
+  metadata mismatches, altered fields
+- Output: Authentic / Review Required 
+  / Likely Altered
+- Shows specific flags found
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 2 — INTELLIGENT ORCHESTRATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add orchestration logic to the existing 
+screening run creation flow.
+
+When a new screening run starts, system 
+automatically selects fastest verification 
+path per check type:
+
+Employment verification routing:
+- Large employer → automated HR query 
+  (estimated 2-4 hours)
+- Small business → manual verification 
+  queue (estimated 1-2 days)
+- Self-employed → tax document path
+
+Show routing decision in UI under each check:
+"Routed to: Automated HR Query
+ Estimated: 4 hours
+ Reason: Fortune 500 employer detected"
+
+If primary path fails → auto fallback shown:
+"Primary path unavailable — 
+ rerouted to manual queue"
+
+Add to existing analytics dashboard:
+- Average routing accuracy %
+- Fastest path by check type
+- Fallback rate
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 3 — REPORT ETA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to the existing candidate portal:
+
+Dynamic ETA display:
+"Estimated completion: [date] by [time]
+
+ Criminal search:         ✅ Complete
+ Employment verification: ⏳ In progress
+   (2 of 3 employers confirmed)
+ Education verification:  ✅ Complete
+ Drug testing:            ⏳ Awaiting lab"
+
+ETA recalculates when any check 
+completes faster or slower than expected.
+
+Add to existing operator dashboard:
+- "At risk of missing SLA" list — 
+  checks trending late highlighted in red
+- Per-check estimated vs actual 
+  turnaround comparison
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 4 — CONTINUOUS MONITORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add new sidebar item: "Continuous Monitoring"
+
+For candidates who passed screening 
+and were hired, employers can enroll 
+them in ongoing monitoring.
+
+Monitor for post-hire events:
+- New criminal records filed
+- Driving record changes 
+  (suspension, new violations)
+- Sanctions and watchlist additions
+- Professional license status changes
+
+Dashboard shows:
+- Total enrolled employees
+- Alerts in last 30 days
+- Severity breakdown: 
+  Critical / Warning / Info
+
+Alert card example:
+"⚠️ John Smith
+ New criminal filing: 2026-07-10
+ Charge: DUI — First Offense
+ Action: Review → Adjudicate → 
+ Adverse action if warranted"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 5 — DRUG TESTING MODULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add Drug Testing as a check type 
+inside the existing screening package 
+creation flow.
+
+Test types:
+- 5-Panel Urine (standard non-DOT)
+- 10-Panel Urine (extended)
+- DOT 5-Panel (federally regulated)
+- Hair Follicle (90-day window)
+- Oral Fluid (recent use)
+
+Workflow inside existing screening run:
+1. Drug test ordered with package
+2. Candidate sees collection site 
+   locator (nearest sites listed)
+3. Collection completed
+4. Lab processes specimen
+5. MRO review for non-negative results
+6. Result: Negative / Positive / 
+   Dilute / Refused / Invalid / Cancelled
+
+DOT compliance flags:
+- DOT tests blocked from finalizing 
+  without MRO review
+- Chain of custody tracked per test
+- Non-negative results held in 
+  "Pending MRO Review" status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTENSION 6 — MCP SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a ScreenIQ MCP server at /mcp 
+using Streamable HTTP transport 
+(SSE-based, Claude-compatible).
+
+Operator tools (for hiring teams):
+- list_candidates — all candidates 
+  with status and package
+- get_candidate — full profile and 
+  check status
+- get_report — complete results 
+  with AI risk assessment
+- get_analytics — attach rate, 
+  conversion rate, RPR, 
+  time to value metrics
+- get_alerts — continuous monitoring 
+  alerts for enrolled employees
+
+Candidate tools (for candidates):
+- request_verification — OTP to email
+- verify_otp — verify code, 
+  lock session to candidate
+- get_my_report — candidate's own 
+  report status and results
+
+Add MCP docs page at /mcp-docs:
+- Lists all available tools
+- Example Claude prompts:
+  "Show me candidates pending review"
+  "What is my attach rate this month?"
+  "Get the status of Jane Smith's report"
+- Setup instructions for Claude Desktop, 
+  Cursor, and VS Code
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NAVIGATION UPDATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to the existing sidebar navigation:
+- Continuous Monitoring (new)
+- Drug Testing (new)
+- MCP Integration (new)
+
+Keep all existing nav items unchanged.
+
+Update platform tagline to:
+"ScreenIQ — AI-Native Verification Intelligence
+ FCRA · DOT · MCP-Ready"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEMO DATA ADDITIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to existing demo data only —
+do not replace or modify existing 
+demo records:
+
+- 2 candidates with criminal charges 
+  for Charge Classifier demo
+- 1 candidate with name alias 
+  revealing additional record
+- 1 candidate with employment 
+  title discrepancy
+- 1 pay stub with formatting 
+  inconsistency for Doc Inspector
+- 5 employees enrolled in 
+  Continuous Monitoring
+- 1 post-hire alert (DUI charge)
+- Drug test results for 3 candidates 
+  (1 negative, 1 positive, 1 dilute)

@@ -124,8 +124,51 @@ def init_db():
                 );
             """)
 
-            # Idempotent schema migrations for new columns
+            # Idempotent schema migrations for new columns and tables
             cur.execute("""
                 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS screening_type TEXT NOT NULL DEFAULT 'employment';
                 ALTER TABLE candidates ADD COLUMN IF NOT EXISTS latest_run_id INTEGER REFERENCES screening_runs(id) ON DELETE SET NULL;
+            """)
+
+            # Continuous monitoring tables
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS monitoring_enrollments (
+                    id SERIAL PRIMARY KEY,
+                    candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+                    enrolled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    status TEXT NOT NULL DEFAULT 'active',
+                    monitor_types JSONB NOT NULL DEFAULT '["criminal","driving","sanctions","license"]',
+                    CONSTRAINT monitoring_enrollments_candidate_unique UNIQUE (candidate_id)
+                );
+
+                CREATE TABLE IF NOT EXISTS monitoring_alerts (
+                    id SERIAL PRIMARY KEY,
+                    candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+                    alert_type TEXT NOT NULL,
+                    severity TEXT NOT NULL DEFAULT 'warning',
+                    description TEXT NOT NULL,
+                    charge TEXT,
+                    filed_at TIMESTAMPTZ,
+                    status TEXT NOT NULL DEFAULT 'open',
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+            """)
+
+            # Drug testing table
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS drug_tests (
+                    id SERIAL PRIMARY KEY,
+                    candidate_id INTEGER NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+                    test_type TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending_collection',
+                    result TEXT,
+                    mro_review_required BOOLEAN NOT NULL DEFAULT FALSE,
+                    mro_review_complete BOOLEAN NOT NULL DEFAULT FALSE,
+                    chain_of_custody_id TEXT,
+                    collection_site JSONB NOT NULL DEFAULT '{}',
+                    ordered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    collected_at TIMESTAMPTZ,
+                    resulted_at TIMESTAMPTZ,
+                    dot_compliance_flags JSONB NOT NULL DEFAULT '[]'
+                );
             """)

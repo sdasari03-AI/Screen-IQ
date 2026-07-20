@@ -16,6 +16,9 @@ import Benchmarks from '@/pages/analytics/benchmarks';
 import WBRReport from '@/pages/reports/wbr';
 import TenantScreening from '@/pages/tenant';
 import Architecture from '@/pages/architecture';
+import ContinuousMonitoring from '@/pages/monitoring';
+import DrugTesting from '@/pages/drug-testing';
+import MCPDocs from '@/pages/mcp-docs';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +46,9 @@ function Router() {
       <Route path="/analytics/benchmarks" component={Benchmarks} />
       <Route path="/reports/wbr" component={WBRReport} />
       <Route path="/architecture" component={Architecture} />
+      <Route path="/monitoring" component={ContinuousMonitoring} />
+      <Route path="/drug-testing" component={DrugTesting} />
+      <Route path="/mcp-docs" component={MCPDocs} />
       <Route path="/portal/:token" component={CandidatePortal} />
       <Route component={NotFound} />
     </Switch>

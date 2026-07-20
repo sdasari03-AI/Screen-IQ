@@ -1,47 +1,52 @@
 ---
-name: ScreenIQ Phase 2
-description: Phase 2 features — analytics, WBR, tenant screening, benchmarks, architecture page; candidates router screening_type fix; seeding caveat; JSX table fix
+name: ScreenIQ Phase 2 & 3 (Extensions)
+description: What was built in the second and third major feature pushes; seeding caveats and router patterns.
 ---
 
-## Features Added
-- `/analytics` — Checkr OKR hero cards + check-type pie + friction bar chart (Recharts)
-- `/analytics/benchmarks` — industry benchmark grouped bar chart with delta indicators
-- `/reports/wbr` — AI WBR narrative with Generate button (POST mutation)
-- `/tenant` — tenant/resident screening list, filters by screeningType === 'tenant' client-side
-- `/architecture` — Staff PM architecture + design rationale page (6 sections, all interactive)
-- Dashboard backlog health widget, Compliance benchmarks table section
-- Candidates list/detail: screeningType badge, check type defaults per screening type
+## Phase 2 (analytics/reports/tenant pages)
+- `/analytics` — Checkr OKR metrics (attach rate, conversion, RPR, time to value)
+- `/analytics/benchmarks` — industry benchmark comparison
+- `/reports/wbr` — AI WBR generation (GPT-4o)
+- `/tenant` — tenant screening vertical
+- `/architecture` — Staff PM rationale page
 
-## Architecture Page Structure
-Route: /architecture, nav item: "Architecture" (Network icon from lucide-react)
-Sections: 00 PM Design Philosophy (3 principles) · 01 5-layer architecture diagram (clickable PM rationale per layer) · 02 8-step screening lifecycle (clickable design decisions) · 03 Feature Traceability Matrix (9 rows, React.Fragment key per row, expandable PM hypotheses) · 04 Technology Rationale (6 stack cards) · 05 Demo Script (7 steps with talking points)
+## Phase 3 (6-Extension Build)
 
-## JSX Table Pitfall (important)
-When a `.map()` inside `<tbody>` needs to return two sibling `<tr>` elements (one for the row, one for an optional expanded detail row), the ONLY correct pattern is:
-```tsx
-<tbody>
-  {data.map((r, i) => (
-    <React.Fragment key={r.id}>
-      <tr>...</tr>
-      {active && <tr>...</tr>}
-    </React.Fragment>
-  ))}
-</tbody>
-```
-- `<React.Fragment key={...}>` is required for the key (shorthand `<>` doesn't support key)
-- Never nest `<tbody>` inside another `<tbody>` — JSX parser rejects it
-- Never put the map result outside `<tbody>` as a direct `<table>` child
+### Extension 1 — AI Intelligence Panel (`routers/ai_intelligence.py`)
+- 5 POST/GET endpoints: `/api/intelligence/classify-charge`, `/api/intelligence/explain-charge`, `/api/intelligence/name-matcher/{id}`, `/api/intelligence/role-matcher/{id}`, `/api/intelligence/doc-inspector`
+- Doc Inspector uses `gpt-4o` (vision) with fallback; all others use `gpt-5.6-luna`
+- Frontend: `AIIntelligencePanel` component embedded in candidates/detail.tsx as a third tab
+- Uses direct `fetch` calls (not codegen hooks) since these are interactive, not query-keyed
 
-## Candidates Router: screening_type
-The `candidates.py` router was missing `screening_type` from all SELECT, INSERT, and UPDATE queries. After adding it, `row_to_candidate` maps `row[12]` to `screeningType`. The `list_candidates` endpoint accepts `?screeningType=` query param. All SELECT statements use `COALESCE(c.screening_type, 'employment')`.
+### Extension 2 — Orchestration
+- Routing logic lives in simulation engine details field (no DB schema change)
+- Not a separate page — routing metadata surfaced via check_results.details
 
-**Why:** The `screening_type` column was added via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` in `database.py`, so existing rows have NULL. COALESCE handles this.
+### Extension 3 — Report ETA
+- ETA computed dynamically from check statuses (no DB schema change needed)
 
-## Seeding Caveat
-`_seed_demo_data()` in `main.py` returns early if `SELECT COUNT(*) FROM candidates > 0`. Tenant demo candidates (Sarah Kim id=6, Robert Hayes id=7) were inserted via POST API after initial seed, then PATCHed to `screening_type = 'tenant'` once the router fix was live.
+### Extension 4 — Continuous Monitoring (`routers/monitoring.py`, `pages/monitoring.tsx`)
+- Two new tables: `monitoring_enrollments` (UNIQUE on candidate_id), `monitoring_alerts`
+- GET /monitoring, POST /monitoring/enroll/{id}, GET /monitoring/alerts, GET /monitoring/stats
+- POST /monitoring/alerts/{id}/dismiss
 
-## Codegen Fix (always apply after codegen)
-`sed -i 's/zod\.looseObject/zod.object/g' lib/api-zod/src/generated/api.ts`
+### Extension 5 — Drug Testing (`routers/drug_testing.py`, `pages/drug-testing.tsx`)
+- New table: `drug_tests`
+- 5 test types: 5_panel_urine, 10_panel_urine, dot_5_panel, hair_follicle, oral_fluid
+- DOT-regulated tests require MRO review for non-negative results
+- POST /drug-tests/order (simulates result deterministically from candidateId+testType+date seed)
+- POST /drug-tests/{id}/mro-complete
 
-## TDZ Pitfall
-`useEffect` referencing a `const` from a hook must come AFTER the hook call — JavaScript TDZ applies even within function components.
+### Extension 6 — MCP Server (`routers/mcp_server.py`, `pages/mcp-docs.tsx`)
+- JSON-RPC 2.0 over HTTP at `/api/mcp`
+- 6 tools: list_candidates, get_candidate, get_report, get_analytics, get_alerts, get_my_report
+- SSE GET endpoint at same path
+- Frontend MCP docs page shows tools, prompts, setup configs for Claude Desktop/Cursor/VS Code
+
+## Seeding Pattern
+- `_seed_demo_data()` in main.py returns early if `COUNT(*) FROM candidates > 0`
+- `_seed_extension_data()` returns early if `COUNT(*) FROM monitoring_enrollments > 0`
+- Extension seed adds: 4 new candidates (Tyler Brooks, Keisha Monroe, Maria Gonzalez-Santos, James Whitfield), 3 drug tests, 5 monitoring enrollments, 2 monitoring alerts
+
+## Sidebar Tagline
+Updated to: `"AI-Native Verification Intelligence / FCRA · DOT · MCP-Ready"`

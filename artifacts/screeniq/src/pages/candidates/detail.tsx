@@ -22,9 +22,341 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Play, ShieldAlert, CheckCircle2, AlertTriangle, Clock, Search, FileText, User, Mail, Phone, Calendar, Hash, ExternalLink, Activity, MessageSquare, Briefcase, Home } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Play, ShieldAlert, CheckCircle2, AlertTriangle, Clock, Search, FileText, User, Mail, Phone, Calendar, Hash, ExternalLink, Activity, MessageSquare, Briefcase, Home, Brain, Upload, Loader2, Users, Briefcase as BriefcaseIcon } from "lucide-react";
 import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// ─── AI Intelligence Panel ────────────────────────────────────────────────────
+
+const BADGE_COLORS: Record<string, string> = {
+  green:  "bg-green-100 text-green-700 border-green-200",
+  yellow: "bg-amber-100 text-amber-700 border-amber-200",
+  red:    "bg-red-100 text-red-700 border-red-200",
+};
+
+function ColorBadge({ badge, label }: { badge: string; label: string }) {
+  return <Badge variant="outline" className={`text-xs font-bold ${BADGE_COLORS[badge] || BADGE_COLORS.yellow}`}>{label}</Badge>;
+}
+
+function AIIntelligencePanel({ candidateId }: { candidateId: number }) {
+  // Charge Classifier
+  const [chargeInput, setChargeInput] = useState("");
+  const [ruleset, setRuleset] = useState("standard");
+  const [classifyResult, setClassifyResult] = useState<any>(null);
+  const [classifyLoading, setClassifyLoading] = useState(false);
+  const [explainResult, setExplainResult] = useState<any>(null);
+  const [explainLoading, setExplainLoading] = useState(false);
+
+  // Name Matcher
+  const [nameResult, setNameResult] = useState<any>(null);
+  const [nameLoading, setNameLoading] = useState(false);
+  const [nameFetched, setNameFetched] = useState(false);
+
+  // Role Matcher
+  const [roleResult, setRoleResult] = useState<any>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleFetched, setRoleFetched] = useState(false);
+
+  // Doc Inspector
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docType, setDocType] = useState("pay_stub");
+  const [docResult, setDocResult] = useState<any>(null);
+  const [docLoading, setDocLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const classifyCharge = async () => {
+    if (!chargeInput.trim()) return;
+    setClassifyLoading(true);
+    setExplainResult(null);
+    try {
+      const r = await fetch(`${BASE}/api/intelligence/classify-charge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ charge: chargeInput, ruleset }),
+      });
+      setClassifyResult(await r.json());
+    } finally { setClassifyLoading(false); }
+  };
+
+  const explainCharge = async (charge: string, category?: string, severity?: string) => {
+    setExplainLoading(true);
+    try {
+      const r = await fetch(`${BASE}/api/intelligence/explain-charge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ charge, category, severity }),
+      });
+      setExplainResult(await r.json());
+    } finally { setExplainLoading(false); }
+  };
+
+  const fetchNameMatcher = async () => {
+    setNameLoading(true);
+    setNameFetched(true);
+    try {
+      const r = await fetch(`${BASE}/api/intelligence/name-matcher/${candidateId}`);
+      setNameResult(await r.json());
+    } finally { setNameLoading(false); }
+  };
+
+  const fetchRoleMatcher = async () => {
+    setRoleLoading(true);
+    setRoleFetched(true);
+    try {
+      const r = await fetch(`${BASE}/api/intelligence/role-matcher/${candidateId}`);
+      setRoleResult(await r.json());
+    } finally { setRoleLoading(false); }
+  };
+
+  const inspectDoc = async () => {
+    if (!docFile) return;
+    setDocLoading(true);
+    try {
+      const form = new FormData();
+      form.append("file", docFile);
+      form.append("doc_type", docType);
+      const r = await fetch(`${BASE}/api/intelligence/doc-inspector`, { method: "POST", body: form });
+      setDocResult(await r.json());
+    } finally { setDocLoading(false); }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Brain className="w-5 h-5 text-primary" />
+        <h3 className="font-bold text-base">AI Intelligence Panel</h3>
+        <Badge variant="secondary" className="text-[10px]">GPT-4o</Badge>
+      </div>
+
+      {/* ── Charge Classifier ───────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div>
+          <h4 className="font-bold text-sm mb-0.5">Charge Classifier</h4>
+          <p className="text-xs text-muted-foreground">Paste a raw criminal charge string. AI classifies category, severity, disposition, and applies the employer ruleset.</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          <Input
+            placeholder='e.g. "Burglary 2nd Degree (Felony) — 2019, Dismissed"'
+            value={chargeInput}
+            onChange={e => setChargeInput(e.target.value)}
+          />
+          <div className="flex gap-3">
+            <Select value={ruleset} onValueChange={setRuleset}>
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard Screening Criteria</SelectItem>
+                <SelectItem value="flag_felonies_only">Flag Felonies Only</SelectItem>
+                <SelectItem value="ignore_traffic">Ignore Traffic Violations</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={classifyCharge} disabled={classifyLoading || !chargeInput.trim()} className="shrink-0">
+              {classifyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Classify"}
+            </Button>
+          </div>
+        </div>
+        {classifyResult && (
+          <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ColorBadge badge={classifyResult.badge} label={classifyResult.rulesetDecision} />
+              <Badge variant="secondary">{classifyResult.category}</Badge>
+              <Badge variant="outline">{classifyResult.severity}</Badge>
+              <Badge variant="outline">{classifyResult.disposition}</Badge>
+            </div>
+            <p className="text-sm text-foreground">{classifyResult.summary}</p>
+            <p className="text-xs text-muted-foreground italic border-l-2 border-muted-foreground/30 pl-3">{classifyResult.rulesetReason}</p>
+            <Button size="sm" variant="outline" onClick={() => explainCharge(classifyResult.charge, classifyResult.category, classifyResult.severity)} disabled={explainLoading}>
+              {explainLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+              Explain this charge in plain language →
+            </Button>
+          </div>
+        )}
+        {explainResult && (
+          <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4 space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Charge Explainer</p>
+            <p className="text-sm font-medium">{explainResult.plainLanguage}</p>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {[
+                ["Typical Sentence", explainResult.typicalSentenceRange],
+                ["Statute", explainResult.relevantStatute],
+                ["How Common", explainResult.howCommon],
+              ].map(([k, v]) => v && (
+                <div key={k}>
+                  <p className="font-bold text-muted-foreground mb-0.5">{k}</p>
+                  <p>{v}</p>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-blue-200/60">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Fair Hiring Context (EEOC)</p>
+              <p className="text-xs leading-relaxed">{explainResult.fairHiringContext}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Name Matcher ────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h4 className="font-bold text-sm mb-0.5">Name Matcher</h4>
+            <p className="text-xs text-muted-foreground">AI generates aliases, maiden/married variants, and hyphenated combinations for broader database coverage.</p>
+          </div>
+          {!nameFetched && (
+            <Button size="sm" variant="outline" onClick={fetchNameMatcher} disabled={nameLoading} className="shrink-0">
+              {nameLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5 mr-1" />}
+              Run Search
+            </Button>
+          )}
+        </div>
+        {nameLoading && <Skeleton className="h-32" />}
+        {nameResult && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3 text-center text-xs">
+              {[
+                ["Variants Searched", nameResult.searchSummary?.variants_searched ?? nameResult.variants?.length],
+                ["Records Returned", nameResult.searchSummary?.records_returned ?? 0],
+                ["New Matches", nameResult.searchSummary?.new_matches_found ?? 0],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xl font-bold">{v}</p>
+                  <p className="text-muted-foreground">{k}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              {nameResult.variants?.map((v: any, i: number) => (
+                <div key={i} className="flex items-center justify-between text-sm border rounded-lg px-3 py-2">
+                  <div>
+                    <span className="font-semibold">{v.name}</span>
+                    <span className="text-xs text-muted-foreground ml-2 capitalize">{v.type?.replace(/_/g, " ")}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">{v.confidence}% confidence</Badge>
+                </div>
+              ))}
+            </div>
+            {nameResult.searchSummary?.recommendation && (
+              <p className="text-xs text-muted-foreground italic border-l-2 border-muted-foreground/30 pl-3">
+                {nameResult.searchSummary.recommendation}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Role Matcher ────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <h4 className="font-bold text-sm mb-0.5">Role Matcher</h4>
+            <p className="text-xs text-muted-foreground">Compare claimed job title and employer against the employment verification record. Flags discrepancies and fabrications.</p>
+          </div>
+          {!roleFetched && (
+            <Button size="sm" variant="outline" onClick={fetchRoleMatcher} disabled={roleLoading} className="shrink-0">
+              {roleLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BriefcaseIcon className="w-3.5 h-3.5 mr-1" />}
+              Run Match
+            </Button>
+          )}
+        </div>
+        {roleLoading && <Skeleton className="h-28" />}
+        {roleResult && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ColorBadge
+                badge={roleResult.badge}
+                label={roleResult.verdict}
+              />
+              <span className="text-xs text-muted-foreground">Confidence: {roleResult.confidence}%</span>
+            </div>
+            {roleResult.mismatchDetail && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Mismatch Detected</p>
+                <p className="text-sm font-mono">{roleResult.mismatchDetail}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {roleResult.claimedTitle && <div><p className="font-bold text-muted-foreground mb-0.5">Claimed Title</p><p>{roleResult.claimedTitle}</p></div>}
+              {roleResult.verifiedTitle && <div><p className="font-bold text-muted-foreground mb-0.5">Verified Title</p><p>{roleResult.verifiedTitle}</p></div>}
+              {roleResult.claimedEmployer && <div><p className="font-bold text-muted-foreground mb-0.5">Claimed Employer</p><p>{roleResult.claimedEmployer}</p></div>}
+              {roleResult.verifiedEmployer && <div><p className="font-bold text-muted-foreground mb-0.5">Verified Employer</p><p>{roleResult.verifiedEmployer}</p></div>}
+            </div>
+            {roleResult.notes && <p className="text-xs text-muted-foreground italic">{roleResult.notes}</p>}
+          </div>
+        )}
+      </div>
+
+      {/* ── Doc Inspector ───────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        <div>
+          <h4 className="font-bold text-sm mb-0.5">Doc Inspector</h4>
+          <p className="text-xs text-muted-foreground">Upload a pay stub, bank statement, or offer letter. GPT-4o Vision scans for font inconsistencies, alignment issues, and altered fields.</p>
+        </div>
+        <div className="flex flex-col gap-3">
+          <Select value={docType} onValueChange={setDocType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pay_stub">Pay Stub</SelectItem>
+              <SelectItem value="bank_statement">Bank Statement</SelectItem>
+              <SelectItem value="offer_letter">Offer Letter</SelectItem>
+            </SelectContent>
+          </Select>
+          <div
+            className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+            <p className="text-sm font-medium">{docFile ? docFile.name : "Click to upload document"}</p>
+            <p className="text-xs text-muted-foreground mt-1">PNG, JPG, PDF — max 10MB</p>
+            <input ref={fileRef} type="file" className="hidden" accept="image/*,.pdf"
+              onChange={e => setDocFile(e.target.files?.[0] || null)} />
+          </div>
+          {docFile && (
+            <Button onClick={inspectDoc} disabled={docLoading}>
+              {docLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing...</> : "Inspect Document"}
+            </Button>
+          )}
+        </div>
+        {docResult && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <ColorBadge badge={docResult.badge} label={docResult.verdict} />
+              <span className="text-xs text-muted-foreground">Confidence: {docResult.confidence}%</span>
+            </div>
+            <p className="text-sm">{docResult.summary}</p>
+            {docResult.flagsFound?.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-red-500">Flags Found</p>
+                {docResult.flagsFound.map((f: string, i: number) => (
+                  <div key={i} className="flex items-start gap-2 text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" /> {f}
+                  </div>
+                ))}
+              </div>
+            )}
+            {docResult.cleanSignals?.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-green-600">Authentic Signals</p>
+                {docResult.cleanSignals.map((s: string, i: number) => (
+                  <div key={i} className="flex items-start gap-2 text-xs bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0 mt-0.5" /> {s}
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-xs font-medium text-muted-foreground italic">{docResult.recommendation}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CandidateDetail() {
   const { id } = useParams();
@@ -424,6 +756,9 @@ export default function CandidateDetail() {
                   <TabsList className="bg-muted">
                     <TabsTrigger value="results">Check Results</TabsTrigger>
                     <TabsTrigger value="history">Run History</TabsTrigger>
+                    <TabsTrigger value="ai-intelligence" className="gap-1.5">
+                      <Brain className="w-3.5 h-3.5" /> AI Intelligence
+                    </TabsTrigger>
                   </TabsList>
                 </div>
                 
@@ -613,6 +948,10 @@ export default function CandidateDetail() {
                       </div>
                     ))}
                   </div>
+                </TabsContent>
+
+                <TabsContent value="ai-intelligence" className="p-0 m-0">
+                  <AIIntelligencePanel candidateId={candidateId} />
                 </TabsContent>
               </Tabs>
             </Card>
