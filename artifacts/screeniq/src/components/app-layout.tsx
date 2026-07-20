@@ -1,4 +1,5 @@
 import { AppSidebar } from "./app-sidebar";
+import { AIAssistant } from "./ai-assistant";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
 
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </main>
       </div>
+      <AIAssistant />
     </SidebarProvider>
   );
 }

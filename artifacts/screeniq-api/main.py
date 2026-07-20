@@ -10,7 +10,7 @@ from database import init_db
 from routers import (
     candidates, screening, risk_assessment, compliance,
     adverse_action, disputes, portal, dashboard, analytics, reports,
-    ai_intelligence, monitoring, drug_testing, mcp_server
+    ai_intelligence, monitoring, drug_testing, mcp_server, ai_chat
 )
 
 app = FastAPI(
@@ -44,6 +44,7 @@ app.include_router(ai_intelligence.router, prefix="/api")
 app.include_router(monitoring.router, prefix="/api")
 app.include_router(drug_testing.router, prefix="/api")
 app.include_router(mcp_server.router, prefix="/api")
+app.include_router(ai_chat.router)
 
 
 @app.get("/api/healthz")
