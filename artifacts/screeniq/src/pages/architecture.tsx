@@ -8,6 +8,7 @@ const C = {
   api:      { bg: "bg-indigo-950",  border: "border-indigo-700",  text: "text-indigo-300",  badge: "bg-indigo-900 text-indigo-200" },
   db:       { bg: "bg-emerald-950", border: "border-emerald-700", text: "text-emerald-300", badge: "bg-emerald-900 text-emerald-200" },
   ai:       { bg: "bg-violet-950",  border: "border-violet-700",  text: "text-violet-300",  badge: "bg-violet-900 text-violet-200" },
+  mcp:      { bg: "bg-rose-950",    border: "border-rose-700",    text: "text-rose-300",    badge: "bg-rose-900 text-rose-200" },
 };
 
 // ─── Architecture layers ──────────────────────────────────────────────────────
@@ -18,9 +19,10 @@ const LAYERS = [
     chips: [
       "React 18 + Vite 7", "TanStack Query v5", "shadcn/ui + Tailwind CSS",
       "Recharts", "Wouter (routing)", "Generated React Query hooks",
-      "Zod v3 validators (codegen)", "framer-motion",
+      "Zod v3 validators (codegen)", "Direct fetch (AI Intelligence panel)",
+      "File upload (Doc Inspector / GPT-4o Vision)", "SSE-compatible fetch (MCP)",
     ],
-    rationale: "A single-page app eliminates full-page reloads during a live screening review — case managers navigate between candidates without losing context. TanStack Query's stale-while-revalidate strategy means the dashboard automatically refreshes background check statuses without a manual polling architecture. Recharts was chosen over D3 because it composes as React components, making chart code reviewable by the same engineers who write the rest of the UI.",
+    rationale: "A single-page app eliminates full-page reloads during a live screening review — case managers navigate between candidates without losing context. TanStack Query's stale-while-revalidate strategy means the dashboard automatically refreshes background check statuses without a manual polling architecture. The AI Intelligence panel deliberately uses direct fetch rather than codegen hooks — GPT-4o calls are imperative actions triggered by the operator, not declarative queries with cache keys. Mixing both patterns in the same codebase is intentional: use the right tool for the interaction model.",
   },
   {
     id: "codegen", num: "02", label: "Contract Layer", title: "OpenAPI-First Code Generation Pipeline",
@@ -29,32 +31,47 @@ const LAYERS = [
       "openapi.yaml (single source of truth)", "Orval 8.21 (codegen engine)",
       "React Query hooks — generated", "Zod v3 schemas — generated",
       "TypeScript types — generated", "pnpm codegen (single command)",
+      "Post-codegen sed fix: zod.looseObject → zod.object",
     ],
-    rationale: "Hand-written API clients drift from the backend silently — a field is renamed on the server, the client still sends the old name, and the bug surfaces in production three weeks later. Orval generates every hook, type, and validator from the OpenAPI spec, making drift structurally impossible. This is a Staff PM-level architectural decision: invest once in the contract layer, eliminate a whole class of integration bugs forever.",
+    rationale: "Hand-written API clients drift from the backend silently — a field is renamed on the server, the client still sends the old name, and the bug surfaces in production three weeks later. Orval generates every hook, type, and validator from the OpenAPI spec, making drift structurally impossible. This is a Staff PM-level architectural decision: invest once in the contract layer, eliminate a whole class of integration bugs forever. The MCP server and AI Intelligence endpoints bypass codegen intentionally — they use imperative fetch patterns because their payloads are dynamic, open-ended, and not cacheable as query keys.",
   },
   {
     id: "api", num: "03", label: "Application Layer", title: "FastAPI — Python 3.12",
     color: C.api,
     chips: [
+      // Core
       "GET /candidates (+ ?screeningType filter)", "POST /candidates/:id/screening-runs",
       "GET /analytics/business-metrics", "GET /analytics/benchmarks",
       "GET /analytics/backlog", "GET /analytics/friction",
       "POST /adverse-action", "GET /compliance/metrics",
       "GET /reports/wbr + POST /generate", "GET /portal/:token (public)",
       "Simulation engine — 7 check types", "FCRA adverse-action state machine",
+      // Extensions
+      "POST /intelligence/classify-charge", "POST /intelligence/explain-charge",
+      "GET /intelligence/name-matcher/:id", "GET /intelligence/role-matcher/:id",
+      "POST /intelligence/doc-inspector (vision)",
+      "GET /monitoring + POST /monitoring/enroll/:id",
+      "GET /monitoring/alerts + POST /alerts/:id/dismiss",
+      "GET /drug-tests + POST /drug-tests/order",
+      "POST /drug-tests/:id/mro-complete",
+      "POST /mcp (JSON-RPC 2.0)", "GET /mcp (SSE stream)",
     ],
-    rationale: "Python was a product decision, not a technical one: every AI/ML library (OpenAI, LangChain, future ML scoring) is first-class in Python. The API and intelligence layers share a runtime — adding a new AI feature requires no new service, no new deployment, no cross-service API design. FastAPI auto-generates the OpenAPI spec from type annotations, keeping the contract layer always current without a separate documentation step.",
+    rationale: "Python was a product decision, not a technical one: every AI/ML library (OpenAI, LangChain, future ML scoring) is first-class in Python. The API and intelligence layers share a runtime — adding a new AI feature requires no new service, no new deployment, no cross-service API design. The MCP server is a FastAPI router, not a separate process — any new database query or AI capability is immediately available as an MCP tool with zero additional infrastructure. FastAPI auto-generates the OpenAPI spec from type annotations, keeping the contract layer always current without a separate documentation step.",
   },
   {
     id: "db", num: "04", label: "Persistence Layer", title: "PostgreSQL",
     color: C.db,
     chips: [
       "candidates (+ screening_type)", "screening_runs (employment / tenant packages)",
-      "check_results (7 check types, confidence scores)",
+      "check_results (7 check types, confidence scores, routing details)",
       "adverse_actions (pre-adverse → adverse state machine)",
       "disputes (FCRA-mandated)", "wbr_reports (AI narrative cache)",
+      "monitoring_enrollments (UNIQUE on candidate_id, active/inactive)",
+      "monitoring_alerts (criminal / driving / sanctions / license — severity tiers)",
+      "drug_tests (5 test types, DOT compliance flags, MRO review state, COC ID)",
+      "ALTER TABLE IF NOT EXISTS — zero-downtime schema evolution",
     ],
-    rationale: "ACID compliance is the product requirement, not the technical constraint. A background check platform that can produce a partially-written adverse action record — even transiently — is a compliance liability. PostgreSQL's transactional DDL lets us evolve the schema as new check types are added via ALTER TABLE ... ADD COLUMN IF NOT EXISTS, with zero downtime. The relational model was essential for compliance reporting queries that join across candidates, runs, checks, and adverse actions.",
+    rationale: "ACID compliance is the product requirement, not the technical constraint. A background check platform that can produce a partially-written adverse action record — even transiently — is a compliance liability. PostgreSQL's transactional DDL lets us evolve the schema as new check types are added via ALTER TABLE ... ADD COLUMN IF NOT EXISTS, with zero downtime. The monitoring_enrollments table uses UNIQUE (candidate_id) with ON CONFLICT DO UPDATE — an idempotent upsert that makes enrollment safe to call multiple times without phantom records. The relational model was essential for compliance reporting queries that join across candidates, runs, checks, adverse actions, monitoring events, and drug tests.",
   },
   {
     id: "ai", num: "05", label: "Intelligence Layer", title: "OpenAI GPT-4o via Replit AI Proxy",
@@ -62,11 +79,33 @@ const LAYERS = [
     chips: [
       "Risk assessment narratives (per candidate, per run)",
       "Compliance insight generation (weekly digest)",
-      "WBR executive narrative (on-demand)",
+      "WBR executive narrative (on-demand, live DB metrics injected)",
+      "Charge Classifier — category / severity / disposition / ruleset decision",
+      "Charge Explainer — EEOC fair-hiring context, plain language",
+      "Name Matcher — alias variants, cultural naming patterns, database coverage",
+      "Role Matcher — claimed vs verified title / Confirmed / Discrepancy / Fabrication",
+      "Doc Inspector — GPT-4o Vision, forgery signal detection on uploaded documents",
       "Structured JSON output mode (response_format: json_object)",
-      "Live DB metrics injected into every prompt",
+      "gpt-5.6-luna for text; gpt-4o for vision (Doc Inspector)",
     ],
-    rationale: "Structured output mode was a product requirement set before a single prompt was written. A risk assessment that returns free-form text cannot be parsed into key findings, stored in queryable fields, or displayed in a structured card. JSON output mode enforces the API contract at the model level. The Replit AI Proxy handles authentication — no API key is in the frontend bundle or codebase.",
+    rationale: "Structured output mode was a product requirement set before a single prompt was written. A risk assessment that returns free-form text cannot be parsed into key findings, stored in queryable fields, or displayed in a structured card. JSON output mode enforces the API contract at the model level. The AI Intelligence panel (Charge Classifier, Explainer, Name Matcher, Role Matcher, Doc Inspector) demonstrates GPT-4o as a verification intelligence surface, not just a text generator — each sub-panel maps to a specific verification workflow step that a human analyst would otherwise spend 20–40 minutes on. The Replit AI Proxy handles authentication — no API key is in the frontend bundle or codebase.",
+  },
+  {
+    id: "mcp", num: "06", label: "Integration Layer", title: "MCP Server — JSON-RPC 2.0 over Streamable HTTP",
+    color: C.mcp,
+    chips: [
+      "MCP protocol version 2024-11-05",
+      "POST /api/mcp — JSON-RPC 2.0 request handler",
+      "GET /api/mcp — SSE stream endpoint",
+      "6 tools: list_candidates, get_candidate, get_report, get_analytics, get_alerts, get_my_report",
+      "Operator tools — full platform access",
+      "Candidate tool — portal token-gated (get_my_report)",
+      "Claude Desktop config (claude_desktop_config.json)",
+      "Cursor config (.cursor/mcp.json)",
+      "VS Code Copilot config (.vscode/mcp.json)",
+      "No API key required (open demo access)",
+    ],
+    rationale: "MCP is the emerging standard for connecting AI assistants to live data systems. Building a compliant MCP server means a Checkr case manager using Claude Desktop can ask 'show me all flagged candidates from today' and get a live answer from the production database — without opening a browser, writing a query, or waiting for a report to run. For the RealPage Director of AI Agent Solution Consulting, this is exactly the capability they are responsible for scaling: AI agents that connect to existing enterprise systems and answer operational questions in natural language. Building a working, spec-compliant MCP server demonstrates fluency in the protocol layer that makes AI agents production-grade, not just demo-grade.",
   },
 ];
 
@@ -83,33 +122,53 @@ const LIFECYCLE = [
     decision: "Packages are server-side config, not client-side toggles. An operator cannot accidentally run a credit check on a job applicant (FCRA violation) or skip an eviction check on a tenant. The system enforces the right check set for the regulated vertical — the UI cannot override it.",
   },
   {
-    step: 3, actor: "Simulation Engine", action: "Run checks in parallel",
-    detail: "Each check type has its own config: turnaround range (ms), flag probability, confidence scoring, status vocabulary. Results are written to check_results with realistic latency simulation that mirrors live turnaround times.",
-    decision: "Probabilistic outcomes — not hardcoded pass/fail — let the demo show every possible state transition (flag, clear, review, discrepancy, violations) across repeated runs. A hardcoded demo is only as good as the one scenario it was built for. A probabilistic simulation is always live.",
+    step: 3, actor: "Simulation Engine", action: "Run checks + intelligent orchestration",
+    detail: "Each check type has its own config: turnaround range, flag probability, confidence scoring, status vocabulary. The orchestration layer selects the fastest verification path per check type — large employer → automated HR query; small biz → manual queue; self-employed → tax doc path. Routing decisions and estimated turnarounds are recorded in check_results.details.",
+    decision: "Probabilistic outcomes — not hardcoded pass/fail — let the demo show every possible state transition across repeated runs. The orchestration routing is a PM signal: surfacing why a check is taking longer (manual path vs automated path) converts operator frustration into transparency, which is an OKR, not a feature.",
   },
   {
-    step: 4, actor: "AI Service", action: "Generate risk assessment",
-    detail: "GPT-4o receives the candidate profile, all check results with confidence scores, and industry context. Returns structured JSON: overall_risk (low/medium/high/critical), narrative, key_findings[], recommendations[], confidence_explanation.",
+    step: 4, actor: "AI Intelligence Panel", action: "Deep-dive verification signals",
+    detail: "If a check flags, the operator opens the AI Intelligence tab: paste the raw charge string → Charge Classifier (category / severity / disposition / ruleset decision) → Charge Explainer (EEOC fair-hiring context on demand). Name Matcher runs alias variants for broader database coverage. Role Matcher compares claimed title against verified record. Doc Inspector uses GPT-4o Vision on uploaded pay stubs.",
+    decision: "This panel maps to the exact workflow steps a human analyst would spend 20–40 minutes on per candidate. Making it a tab — not a separate workflow, not a support ticket — means the intelligence is available in the moment of review, not 2 hours later. Reducing expert dependency is the product value proposition.",
+  },
+  {
+    step: 5, actor: "AI Service", action: "Generate structured risk assessment",
+    detail: "GPT-4o receives the candidate profile, all check results with confidence scores, routing decisions, and industry context. Returns structured JSON: overall_risk, narrative, key_findings[], recommendations[], confidence_explanation.",
     decision: "The AI receives confidence scores, not just pass/fail statuses. A 'flag' at 40% confidence is fundamentally different from one at 97% — the former warrants a second look, the latter warrants an adverse action conversation. Surfacing this to case managers reduces false-positive adverse actions.",
   },
   {
-    step: 5, actor: "Case Manager", action: "Review results + AI narrative",
-    detail: "Check results display with status badges, confidence scores, and the AI-generated risk narrative. Case manager reads a plain-English summary in seconds rather than interpreting 7 raw check statuses.",
+    step: 6, actor: "Case Manager", action: "Review results + AI narrative",
+    detail: "Check results display with status badges, confidence scores, routing reason, and the AI-generated risk narrative. Case manager reads a plain-English summary in seconds rather than interpreting 7 raw check statuses. Report ETA shows per-check progress with estimated completion, recalculated as checks complete.",
     decision: "The AI narrative is the primary product surface — raw check statuses are secondary. Most case managers are HR generalists or property managers who need a clear recommendation, not a data dump. The AI converts expertise into accessibility.",
   },
   {
-    step: 6, actor: "Case Manager", action: "Initiate FCRA adverse action (if needed)",
+    step: 7, actor: "Case Manager", action: "Initiate FCRA adverse action (if needed)",
     detail: "Two-step FCRA flow: (1) Pre-adverse notice with reason codes. System enforces waiting period. (2) Final adverse notice only after the window elapses and the candidate has had opportunity to dispute.",
     decision: "The system physically blocks sending a final adverse notice before the waiting period. The state machine has no skip button. A case manager under time pressure, a manager override, or a UI bug cannot bypass it. The right action is the only possible action.",
   },
   {
-    step: 7, actor: "Candidate", action: "Portal access via secure token",
-    detail: "Candidate receives a tokenized link. No account creation required — the 32-byte URL-safe random token is the authenticator. They can view check results, submit disputes, and upload supporting documentation.",
+    step: 8, actor: "Candidate", action: "Portal access via secure token",
+    detail: "Candidate receives a tokenized link. No account creation required — the 32-byte URL-safe random token is the authenticator. They can view check results, submit disputes, and see per-check ETAs with estimated completion dates.",
     decision: "Removing account creation was an explicit product decision to reduce candidate friction (a stated Checkr OKR). Account creation is the highest-friction step in any consumer flow. Portal engagement rate surfaces on the Analytics dashboard as a first-class metric.",
   },
   {
-    step: 8, actor: "System", action: "Dispute resolution and analytics feedback loop",
-    detail: "Disputes trigger re-review. Resolution is recorded (resolved / rejected). All outcomes feed the analytics pipeline: dispute rate, turnaround delta, friction score by check type, backlog health.",
+    step: 9, actor: "System", action: "Post-hire continuous monitoring",
+    detail: "Once a candidate is cleared and hired, operators enroll them in continuous monitoring. The system watches for new criminal filings, driving record changes, sanctions/watchlist additions, and license status changes. Alerts are severity-tiered: Critical (Initiate Adverse Action), Warning (Review), Info (Acknowledge).",
+    decision: "Monitoring is where a point-in-time screening platform becomes a compliance partner. A DUI that occurs 18 months post-hire is an ongoing risk if the employee is a CDL driver. Building the enrollment and alert workflow closes the loop — hiring is not the end of the compliance story.",
+  },
+  {
+    step: 10, actor: "System", action: "Drug testing — DOT-compliant workflow",
+    detail: "Operators order drug tests (5 types) from the candidate profile. The system simulates lab processing, chain of custody, and MRO review. DOT 5-Panel tests with non-negative results are held in 'Pending MRO Review' — the result cannot be finalized until a Medical Review Officer signs off, per 49 CFR Part 40.",
+    decision: "DOT compliance is structural, not advisory. The 'Mark MRO Complete' button is the only path to a finalized non-negative DOT result — the system cannot be talked past it. Same design principle as the FCRA adverse action state machine: make the right action the only possible action.",
+  },
+  {
+    step: 11, actor: "AI Agent / Claude", action: "MCP tool access — natural language operations",
+    detail: "Any MCP-compatible AI assistant (Claude Desktop, Cursor, VS Code Copilot) can connect to the ScreenIQ MCP server and query candidates, reports, analytics, and alerts using natural language. Operator tools return live DB data. The candidate get_my_report tool is portal-token gated.",
+    decision: "MCP is the protocol that makes AI assistants production-grade for enterprise operations. An operator who can ask Claude 'show me all critical monitoring alerts from this week' and get a live, structured answer from the database has a fundamentally different product than one who has to open a dashboard, apply filters, and export a CSV. The MCP server is the surface that enables AI-native operations.",
+  },
+  {
+    step: 12, actor: "System", action: "Dispute resolution and analytics feedback loop",
+    detail: "Disputes trigger re-review. Resolution is recorded. All outcomes feed the analytics pipeline: dispute rate, turnaround delta, friction score by check type, backlog health, monitoring alert rate, drug test positivity rate.",
     decision: "This is the feedback loop that separates a product from a feature. Every dispute either corrects an inaccurate check (improving future accuracy) or generates a metric that drives the next product decision. The loop is the product.",
   },
 ];
@@ -179,6 +238,34 @@ const TRACEABILITY = [
     principle: "Eliminate categories of bugs before they can accumulate",
     hypothesis: "A Staff PM's architectural decisions are as important as their feature decisions. Contract-first development — where the OpenAPI spec is the source of truth and all client code is generated — eliminates an entire category of integration bugs. Every hour saved debugging a type mismatch is an hour that can be spent on product discovery.",
   },
+  {
+    feature: "AI Intelligence Panel",
+    checkr: "AI-powered verifications; reducing analyst review time",
+    realpage: "AI Agent Consulting; verification accuracy at scale",
+    principle: "Surface the right intelligence at the moment of decision",
+    hypothesis: "A verification analyst manually researching a criminal charge — looking up statutes, checking EEOC guidance, generating name variants for alias searches, comparing job titles against verification records — spends 20–40 minutes per candidate on work that GPT-4o can compress into 5 seconds. Making that intelligence a tab on the candidate detail page (not a separate workflow, not a support ticket) means it gets used in the moment of review, not after the decision has already been made.",
+  },
+  {
+    feature: "Continuous Monitoring",
+    checkr: "Post-hire monitoring; ongoing compliance",
+    realpage: "Property compliance; resident behavior post-lease",
+    principle: "A point-in-time check is a snapshot; compliance is a film",
+    hypothesis: "The most significant criminal events in an employment relationship often happen 12–24 months after hire. Building post-hire monitoring as a first-class product surface — with enrollment, severity tiers, and an inline adverse action trigger — signals I understand that a background screening platform's value proposition doesn't end at hire. For CDL drivers, security personnel, or financial roles, this is a regulatory requirement, not a product nice-to-have.",
+  },
+  {
+    feature: "Drug Testing Module",
+    checkr: "—",
+    realpage: "Compliance for regulated industries; DOT clients",
+    principle: "Regulated workflows require structural enforcement, not reminders",
+    hypothesis: "DOT-regulated drug testing (49 CFR Part 40) requires a Medical Review Officer to sign off on all non-negative results before they are finalized. Building a system where the result is literally held in 'Pending MRO Review' — not just labeled as pending, but blocked from finalization — is the same design principle as the FCRA adverse action state machine. The regulation becomes an architecture constraint, not a UX checklist item.",
+  },
+  {
+    feature: "MCP Server (AI Agent Integration)",
+    checkr: "AI-native platform; Checkr API ecosystem",
+    realpage: "AI Agent Solution Consulting; enterprise AI integration",
+    principle: "An AI-native platform speaks the protocol that AI agents speak",
+    hypothesis: "MCP is becoming the standard for connecting AI assistants to enterprise systems. A Director of AI Agent Solution Consulting whose platform exposes an MCP server can tell every client: 'Your Claude instance can query this platform directly — no new API integration, no custom connector, no data export.' Building a spec-compliant MCP server with 6 real tools backed by live data demonstrates the integration pattern that this exact role is responsible for scaling across RealPage's client base.",
+  },
 ];
 
 // ─── Stack decisions ──────────────────────────────────────────────────────────
@@ -195,7 +282,7 @@ const STACK = [
   },
   {
     choice: "FastAPI (Python 3.12)", category: "API layer",
-    pmRationale: "Choosing Python was a product roadmap decision: every AI/ML library — OpenAI, LangChain, Hugging Face, future fine-tuning pipelines — is first-class in Python. The API and intelligence layers share a runtime, which means adding a new AI capability requires no new service, no new deployment config, and no cross-service API design.",
+    pmRationale: "Choosing Python was a product roadmap decision: every AI/ML library — OpenAI, LangChain, Hugging Face, future fine-tuning pipelines — is first-class in Python. The API and intelligence layers share a runtime, which means adding a new AI capability requires no new service, no new deployment config, and no cross-service API design. The MCP server is a FastAPI router — zero new infrastructure to expose any database query as an AI tool.",
     alternative: "Node.js/Express — rejected because the AI ecosystem gravity is firmly in Python. A Node backend would require a separate Python microservice the moment any ML model scoring is added to the roadmap.",
   },
   {
@@ -210,8 +297,18 @@ const STACK = [
   },
   {
     choice: "GPT-4o (structured JSON output)", category: "AI model + output strategy",
-    pmRationale: "Structured output mode was a product requirement set before a single prompt was written. A risk assessment returning free-form text cannot be parsed into displayable fields, stored in queryable DB columns, or compared across candidates. JSON mode enforces the API contract at the model level — the LLM itself rejects malformed responses. This is designing for failure, not just for success.",
+    pmRationale: "Structured output mode was a product requirement set before a single prompt was written. A risk assessment returning free-form text cannot be parsed into displayable fields, stored in queryable DB columns, or compared across candidates. JSON mode enforces the API contract at the model level — the LLM itself rejects malformed responses. This is designing for failure, not just for success. gpt-4o is used for vision (Doc Inspector); gpt-5.6-luna for all text tasks.",
     alternative: "Streaming text output — rejected because it produces a narrative blob, not a machine-readable product surface. You can render a stream; you cannot query it.",
+  },
+  {
+    choice: "MCP (Model Context Protocol) — Streamable HTTP", category: "AI agent integration protocol",
+    pmRationale: "MCP is the emerging standard for AI agent ↔ data system connectivity. Choosing it over a proprietary webhook or REST-only API means ScreenIQ works out of the box with Claude Desktop, Cursor, VS Code Copilot, and any future MCP-compatible client — with no additional integration work. The protocol investment compounds across every client that adopts it.",
+    alternative: "Custom REST API for AI integrations — rejected because it requires a new connector per AI tool. MCP provides a single, universal integration surface that grows in value as the MCP ecosystem grows.",
+  },
+  {
+    choice: "Probabilistic simulation engine", category: "Demo data strategy",
+    pmRationale: "A hardcoded demo is only as good as the one scenario it was built for. A probabilistic simulation engine — seeded from candidate name and check type — produces realistic flag rates, confidence scores, and turnaround variance on every run. Every demo is live, every state transition is visible, and no scenario requires a reset script.",
+    alternative: "Hardcoded fixture data — rejected because it produces a static demo that only shows the happy path. Real stakeholders ask 'what happens when it flags?' A probabilistic system can answer that question live.",
   },
 ];
 
@@ -224,8 +321,8 @@ const DEMO = [
   },
   {
     seq: "02", page: "Candidates → Run Screening", path: "/candidates", duration: "3 min",
-    talk: "Create a new candidate or open an existing one. Show the Screening Type selector (Employment vs Tenant) — this is the vertical-aware design decision. Run a screening and watch the checks populate. Open the AI Risk Assessment panel and read one paragraph aloud — this is the product. Not the raw check statuses; the AI-generated narrative that makes them legible to a non-expert.",
-    highlight: "Screening type selector, AI risk narrative, confidence scores per check",
+    talk: "Create a new candidate or open an existing one. Show the Screening Type selector (Employment vs Tenant) — vertical-aware design. Run a screening and watch the checks populate. Open the AI Risk Assessment panel and read one paragraph aloud — this is the product. Then open the AI Intelligence tab: paste a charge string, pick a ruleset, and show the Charge Classifier output in real time. This is GPT-4o as a verification analyst.",
+    highlight: "Screening type selector, AI risk narrative, AI Intelligence tab (Charge Classifier), confidence scores",
   },
   {
     seq: "03", page: "Adverse Action — FCRA Flow", path: "/adverse-action", duration: "2 min",
@@ -238,19 +335,34 @@ const DEMO = [
     highlight: "Four OKR hero cards, friction score by check type, benchmark delta indicators",
   },
   {
-    seq: "05", page: "Tenant Screening", path: "/tenant", duration: "2 min",
-    talk: "Switch to the RealPage framing. Show the dedicated tenant workflow: Sarah Kim and Robert Hayes as rental applicants in specific units. Note the check package difference — credit and eviction instead of employment and education. Unit-centric position labels (Unit 4B — 2BR Applicant). Same platform, different operator lens.",
+    seq: "05", page: "Tenant Screening", path: "/tenant", duration: "1 min",
+    talk: "Switch to the RealPage framing. Show the dedicated tenant workflow — credit and eviction instead of employment and education, unit-centric labels. Same platform, different operator lens.",
     highlight: "Credit + eviction check types, unit-centric labels, dedicated operator workflow",
   },
   {
-    seq: "06", page: "WBR Report", path: "/reports/wbr", duration: "2 min",
-    talk: "Click 'Generate Fresh Report'. The AI ingests live DB metrics — total candidates, completion rate, backlog health, dispute trends — and produces an exec-ready narrative. Read the Risks and Recommendations sections aloud. This is the RealPage AI Agent consulting capability in product form: AI that compresses a week of ops data into a 60-second executive read.",
+    seq: "06", page: "Continuous Monitoring", path: "/monitoring", duration: "2 min",
+    talk: "Point at the critical alert for Keisha Monroe — new DUI filing post-hire, 8 days ago. This is the scenario that turns a one-time screening into an ongoing compliance posture. Show the 'Initiate Adverse Action' button directly on the alert card — the action is co-located with the signal. Five enrolled employees, two live alerts. The product closes the loop from hire to ongoing compliance.",
+    highlight: "Critical alert card with inline adverse action, severity tiers, enrolled employees list",
+  },
+  {
+    seq: "07", page: "Drug Testing", path: "/drug-testing", duration: "2 min",
+    talk: "Show the three seeded tests: Jordan Mitchell (negative, clean), Marcus Thompson (positive, pending MRO), David Chen (DOT 5-Panel, dilute, pending MRO with 49 CFR Part 40 compliance flag). Click 'Mark MRO Complete' on one — the status updates to 'resulted' immediately. The DOT compliance flag explains exactly why the result is held. This is regulatory enforcement as UX.",
+    highlight: "DOT compliance flag, Pending MRO review state, Mark MRO Complete action, chain of custody ID",
+  },
+  {
+    seq: "08", page: "WBR Report", path: "/reports/wbr", duration: "1 min",
+    talk: "Click 'Generate Fresh Report'. The AI ingests live DB metrics and produces an exec-ready narrative. Read the Risks and Recommendations sections aloud. This is the RealPage AI Agent consulting capability in product form.",
     highlight: "Live DB context in prompt, structured risks + recommendations, generate CTA",
   },
   {
-    seq: "07", page: "Architecture + Decisions", path: "/architecture", duration: "2 min",
-    talk: "Close here to show the PM thinking behind the build. Walk through two rows of the Feature Traceability matrix and point to the PM hypothesis for each. The goal is not to prove you built a lot of features — it's to show that every decision was intentional, every feature encodes a hypothesis, and you can articulate both under pressure.",
-    highlight: "Feature traceability matrix, PM hypotheses, design decision rationale",
+    seq: "09", page: "MCP Integration", path: "/mcp-docs", duration: "2 min",
+    talk: "Show the MCP endpoint and tool listing. Run the curl quick-test live in a terminal — the tools/list call returns all 6 tools in under 200ms. Then show the Claude Desktop config: 4 lines of JSON and every tool is available to Claude. Point at the candidate get_my_report tool — portal-token gated, so candidates can query their own status through Claude. This is the integration layer that makes ScreenIQ AI-native, not just AI-assisted.",
+    highlight: "curl smoke test, tools/list response, Claude Desktop config, candidate tool auth pattern",
+  },
+  {
+    seq: "10", page: "Architecture + Decisions", path: "/architecture", duration: "2 min",
+    talk: "Close here to show the PM thinking behind the build. Walk through two rows of the Feature Traceability matrix — point to the MCP row and the Continuous Monitoring row. Every feature encodes a hypothesis; every hypothesis maps to a JD signal. The goal is not to prove you built a lot of features — it's to show that every decision was intentional.",
+    highlight: "Feature traceability matrix (MCP + Monitoring rows), PM hypotheses, 6-layer architecture diagram",
   },
 ];
 
@@ -340,10 +452,12 @@ export default function Architecture() {
             </p>
             <div className="flex gap-5 flex-wrap">
               {[
-                { val: "5",  label: "Architecture layers" },
-                { val: "8",  label: "Lifecycle steps" },
-                { val: "9",  label: "Features traced to JD" },
-                { val: "6",  label: "Stack decisions documented" },
+                { val: "6",  label: "Architecture layers" },
+                { val: "12", label: "Lifecycle steps" },
+                { val: "13", label: "Features traced to JD" },
+                { val: "8",  label: "Stack decisions documented" },
+                { val: "5",  label: "AI sub-panels (Intelligence)" },
+                { val: "6",  label: "MCP tools (live data)" },
               ].map(s => (
                 <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
                   <p className="text-3xl font-black text-indigo-400">{s.val}</p>
@@ -368,22 +482,22 @@ export default function Architecture() {
                 {
                   n: "I",
                   title: "Compliance is structural, not procedural",
-                  body: "A system that requires humans to remember to follow FCRA procedure will eventually produce a human who forgets — usually at the worst possible moment. Every compliance rule in ScreenIQ is enforced by the system: state machines that block invalid transitions, waiting periods that disable buttons, notice sequences that cannot be reordered. The right action is the only action.",
-                  effect: "Trace to: FCRA adverse action state machine (lifecycle step 6), waiting period enforcement on final adverse notice button.",
+                  body: "A system that requires humans to remember to follow FCRA or DOT procedure will eventually produce a human who forgets — usually at the worst possible moment. Every compliance rule in ScreenIQ is enforced by the system: state machines that block invalid transitions, waiting periods that disable buttons, DOT MRO holds that cannot be bypassed, adverse action sequences that cannot be reordered.",
+                  effect: "Trace to: FCRA adverse action state machine (lifecycle step 7), DOT MRO review hold (drug testing step 10), waiting period enforcement on final adverse notice button.",
                   color: "border-blue-800 bg-blue-950/40", accent: "text-blue-400", eb: "border-blue-900 bg-blue-950/60 text-blue-300",
                 },
                 {
                   n: "II",
                   title: "AI compresses expertise, not decisions",
-                  body: "The AI layer in ScreenIQ generates narratives, surfaces risk patterns, and produces executive reports — but every consequential decision requires a deliberate human action. The AI's job is to make a case manager's 10-minute review take 90 seconds, and to make a non-expert's review as good as an expert's. It does not make decisions; it shapes the quality of decisions.",
-                  effect: "Trace to: AI risk assessment narrative (step 4), WBR generation (/reports/wbr), compliance insights (/compliance).",
+                  body: "The AI layer in ScreenIQ generates narratives, classifies charges, detects document anomalies, matches names and roles, and produces executive reports — but every consequential decision requires a deliberate human action. The AI's job is to make a case manager's 40-minute review take 4 minutes. It does not make decisions; it shapes the quality of decisions.",
+                  effect: "Trace to: AI risk assessment (step 5), AI Intelligence panel — Charge Classifier, Explainer, Name Matcher, Role Matcher, Doc Inspector (step 4), WBR generation (/reports/wbr).",
                   color: "border-violet-800 bg-violet-950/40", accent: "text-violet-400", eb: "border-violet-900 bg-violet-950/60 text-violet-300",
                 },
                 {
                   n: "III",
                   title: "Metrics are a product surface, not an afterthought",
-                  body: "Friction score, attach rate, conversion rate, backlog health, and turnaround delta are not vanity dashboards. Each maps to a specific OKR or JD signal from the target companies. A Staff PM does not build analytics after the features are done — they design the measurement model first, then build the features that move it.",
-                  effect: "Trace to: /analytics (Checkr OKR view), /analytics/benchmarks, Backlog Health widget on Dashboard, portal engagement rate.",
+                  body: "Friction score, attach rate, conversion rate, backlog health, monitoring alert rate, and drug test positivity rate are not vanity dashboards. Each maps to a specific OKR or JD signal from the target companies. A Staff PM does not build analytics after the features are done — they design the measurement model first.",
+                  effect: "Trace to: /analytics (Checkr OKR view), /analytics/benchmarks, Backlog Health widget, Continuous Monitoring stats, Drug Testing outcome counts.",
                   color: "border-emerald-800 bg-emerald-950/40", accent: "text-emerald-400", eb: "border-emerald-900 bg-emerald-950/60 text-emerald-300",
                 },
               ].map(p => (
@@ -404,8 +518,8 @@ export default function Architecture() {
           <section>
             <SectionHeader
               num="01" label="System Architecture"
-              title="5-layer architecture — click any layer for PM rationale"
-              sub="The diagram reads top-to-bottom as the request path: browser → contract → API → database and AI. Every layer was chosen with product consequences in mind, not just technical preference."
+              title="6-layer architecture — click any layer for PM rationale"
+              sub="The diagram reads top-to-bottom as the request path: browser → contract → API → database and AI → MCP integration. Every layer was chosen with product consequences in mind, not just technical preference."
             />
             <div className="flex gap-6">
               <div className="flex-1">
@@ -416,7 +530,7 @@ export default function Architecture() {
                   </div>
                 ))}
               </div>
-              <div className="w-60 shrink-0">
+              <div className="w-64 shrink-0">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sticky top-6 space-y-5">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Data flow</p>
@@ -429,6 +543,7 @@ export default function Architecture() {
                         { a: "↑", d: "OpenAI → API: structured JSON" },
                         { a: "↑", d: "API → Browser: JSON responses" },
                         { a: "⇒", d: "openapi.yaml → Browser: codegen (build step)" },
+                        { a: "⇔", d: "MCP client ↔ /api/mcp: JSON-RPC 2.0" },
                       ].map((d, i) => (
                         <div key={i} className="flex gap-2 text-[11px]">
                           <span className="text-indigo-400 font-bold shrink-0 w-4">{d.a}</span>
@@ -446,6 +561,9 @@ export default function Architecture() {
                         "ACID transactions for all state mutations",
                         "OpenAPI is single source of truth",
                         "All AI prompts include live DB context",
+                        "DOT MRO hold is structurally enforced",
+                        "FCRA waiting period blocks final notice",
+                        "MCP candidate tool is portal-token gated",
                       ].map((k, i) => (
                         <li key={i} className="flex gap-2 text-[11px]">
                           <span className="text-emerald-400 shrink-0">✓</span>
@@ -463,7 +581,7 @@ export default function Architecture() {
           <section>
             <SectionHeader
               num="02" label="Screening Lifecycle"
-              title="A background check from candidate creation to resolution"
+              title="A background check from candidate creation to AI agent access"
               sub="Each step reflects a deliberate product decision. Click any step to read the reasoning behind it."
             />
             <div className="relative">
@@ -585,8 +703,8 @@ export default function Architecture() {
           <section>
             <SectionHeader
               num="05" label="Demo Script"
-              title="Suggested walkthrough order — 15-minute product demo"
-              sub="The order is deliberate: ops context first (Dashboard), then compliance depth (Adverse Action), then metrics fluency (Analytics), then vertical capability (Tenant), then AI as product surface (WBR), then close here to show the PM thinking."
+              title="Suggested walkthrough order — 20-minute product demo"
+              sub="The order is deliberate: ops context (Dashboard) → live screening + AI Intelligence → FCRA compliance → Checkr OKRs → RealPage tenant → Continuous Monitoring → Drug Testing (DOT) → WBR → MCP → close with architecture. Each segment builds on the previous one."
             />
             <div className="space-y-3">
               {DEMO.map((s) => (
@@ -617,7 +735,7 @@ export default function Architecture() {
               ScreenIQ — a portfolio artifact demonstrating AI-native product thinking at the Staff / Principal PM level.
             </p>
             <p className="text-slate-700 text-xs font-mono">
-              React + Vite · FastAPI · PostgreSQL · OpenAI GPT-4o · Orval codegen · TanStack Query · shadcn/ui · Recharts
+              React + Vite · FastAPI · PostgreSQL · OpenAI GPT-4o · MCP (JSON-RPC 2.0) · Orval codegen · TanStack Query · shadcn/ui · Recharts
             </p>
           </div>
 
